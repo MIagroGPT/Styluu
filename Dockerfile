@@ -3,13 +3,20 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies
+# Copy package descriptors
 COPY package*.json ./
+
+# Clean install for Linux container
 RUN npm install
 
-# Copy source code and build
+# Copy source code
 COPY . .
-RUN npm run build
+
+# Ensure binary execution permissions
+RUN chmod -R +x node_modules/.bin || true
+
+# Build production bundle
+RUN npx vite build
 
 # Stage 2: Serve with ultralight high-performance Nginx
 FROM nginx:alpine
