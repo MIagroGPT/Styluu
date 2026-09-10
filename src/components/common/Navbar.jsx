@@ -158,7 +158,7 @@ export const Navbar = () => {
                 <LayoutDashboard className="w-4 h-4 text-brand-mint group-hover:rotate-12 transition-transform" />
                 <span>{t('nav_business')}</span>
                 <span className="bg-brand-purple/40 text-brand-mint text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-extrabold border border-brand-mint/30">
-                  Fresha Pro
+                  BOOKEA
                 </span>
               </button>
             )}
@@ -239,7 +239,7 @@ export const Navbar = () => {
               <span>{t('nav_business')}</span>
             </div>
             <span className="bg-brand-mint text-brand-carbon text-[11px] font-black px-2.5 py-0.5 rounded-md">
-              SaaS Pro
+              BOOKEA
             </span>
           </button>
         </div>
