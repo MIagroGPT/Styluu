@@ -39,6 +39,90 @@ app.get('/api/health', async (_req, res) => {
   }
 });
 
+// ─── Database Setup (run once to create all tables) ─────────────────────────
+app.get('/api/setup', async (_req, res) => {
+  try {
+    await db(`
+      CREATE TABLE IF NOT EXISTS venues (
+        id TEXT PRIMARY KEY, name TEXT NOT NULL, tagline TEXT, address TEXT, city TEXT,
+        category TEXT, rating NUMERIC(3,1) DEFAULT 5.0, reviews_count INTEGER DEFAULT 0,
+        price_range TEXT DEFAULT '$$', hours TEXT, opening_hour TEXT DEFAULT '09:00',
+        closing_hour TEXT DEFAULT '20:00', open_days JSONB DEFAULT '[]',
+        daily_schedule JSONB DEFAULT '{}', images JSONB DEFAULT '[]',
+        services JSONB DEFAULT '[]', amenities JSONB DEFAULT '[]',
+        phone TEXT, email TEXT, website TEXT, instagram TEXT, about TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS staff_members (
+        id TEXT PRIMARY KEY, name TEXT NOT NULL, role TEXT,
+        rating NUMERIC(3,1) DEFAULT 5.0, reviews_count INTEGER DEFAULT 0,
+        avatar TEXT, color TEXT DEFAULT '#6045F4', commission_rate INTEGER DEFAULT 50,
+        specialties JSONB DEFAULT '[]', schedule JSONB DEFAULT '{}',
+        created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS calendar_appointments (
+        id TEXT PRIMARY KEY, booking_id TEXT, staff_id TEXT,
+        client_name TEXT, client_phone TEXT, client_email TEXT,
+        service_name TEXT, service_category TEXT DEFAULT 'General',
+        price NUMERIC(10,2) DEFAULT 0, start_time TEXT, end_time TEXT,
+        date TEXT, status TEXT DEFAULT 'confirmed', color TEXT DEFAULT '#6045F4',
+        notes TEXT, cancellation_reason TEXT, reschedule_reason TEXT,
+        commission_settled BOOLEAN DEFAULT FALSE, commission_settled_at TIMESTAMPTZ,
+        cancelled_at TIMESTAMPTZ, rescheduled_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS client_bookings (
+        id TEXT PRIMARY KEY, venue_id TEXT, venue_name TEXT, venue_address TEXT,
+        service_name TEXT, staff_name TEXT, staff_avatar TEXT,
+        client_name TEXT, client_phone TEXT, client_email TEXT,
+        date TEXT, time TEXT, price NUMERIC(10,2) DEFAULT 0,
+        status TEXT DEFAULT 'confirmed', booking_code TEXT,
+        cancellation_reason TEXT, reschedule_reason TEXT,
+        cancelled_at TIMESTAMPTZ, rescheduled_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS clients_crm (
+        id TEXT PRIMARY KEY, name TEXT NOT NULL, phone TEXT, email TEXT UNIQUE,
+        avatar TEXT, total_visits INTEGER DEFAULT 0, total_spent NUMERIC(10,2) DEFAULT 0,
+        total_cancelled INTEGER DEFAULT 0, total_rescheduled INTEGER DEFAULT 0,
+        last_visit TEXT, favorite_staff TEXT, tags JSONB DEFAULT '[]', notes TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS sales_transactions (
+        id TEXT PRIMARY KEY, timestamp BIGINT, date TEXT, time TEXT,
+        staff_id TEXT, staff_name TEXT, client_name TEXT, service_name TEXT,
+        service_price NUMERIC(10,2) DEFAULT 0, products_total NUMERIC(10,2) DEFAULT 0,
+        tip_amount NUMERIC(10,2) DEFAULT 0, tax_amount NUMERIC(10,2) DEFAULT 0,
+        total_amount NUMERIC(10,2) DEFAULT 0, payment_method TEXT DEFAULT 'card',
+        items JSONB DEFAULT '[]', settled BOOLEAN DEFAULT FALSE,
+        payout_status TEXT DEFAULT 'pending', settlement_id TEXT, settled_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS payroll_settlements (
+        id TEXT PRIMARY KEY, timestamp BIGINT, date TEXT, staff_id TEXT,
+        staff_name TEXT, period_label TEXT, start_date TEXT, end_date TEXT,
+        transaction_ids JSONB DEFAULT '[]', gross_amount NUMERIC(10,2) DEFAULT 0,
+        commission_rate INTEGER DEFAULT 50, net_payout NUMERIC(10,2) DEFAULT 0,
+        status TEXT DEFAULT 'paid', created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS retail_products (
+        id TEXT PRIMARY KEY, name TEXT NOT NULL, brand TEXT, category TEXT,
+        price NUMERIC(10,2) DEFAULT 0, stock INTEGER DEFAULT 0,
+        image TEXT, description TEXT, sku TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_cal_apts_date ON calendar_appointments(date);
+      CREATE INDEX IF NOT EXISTS idx_cal_apts_staff ON calendar_appointments(staff_id);
+      CREATE INDEX IF NOT EXISTS idx_client_bookings_email ON client_bookings(client_email);
+      CREATE INDEX IF NOT EXISTS idx_clients_crm_email ON clients_crm(email);
+      CREATE INDEX IF NOT EXISTS idx_sales_date ON sales_transactions(date);
+    `);
+    res.json({ status: 'ok', message: '✅ Todas las tablas creadas exitosamente', tables: ['venues','staff_members','calendar_appointments','client_bookings','clients_crm','sales_transactions','payroll_settlements','retail_products'] });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
 // ═══════════════════════════════════════════════════════════════════════════
 //  VENUES
 // ═══════════════════════════════════════════════════════════════════════════
