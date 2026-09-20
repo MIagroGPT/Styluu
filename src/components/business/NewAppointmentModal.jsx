@@ -20,7 +20,7 @@ export const NewAppointmentModal = ({ initialData, isOpen, onClose }) => {
   const { 
     staffMembers = [], 
     venues = [], 
-    setCalendarAppointments, 
+    createManualAppointment,
     showToast, 
     formatMoney, 
     currentCurrency 
@@ -129,7 +129,7 @@ export const NewAppointmentModal = ({ initialData, isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const staff = staffMembers.find(s => s.id === selectedStaffId);
     const computedEndTime = calculateEndTime(time, serviceDuration);
@@ -152,7 +152,7 @@ export const NewAppointmentModal = ({ initialData, isOpen, onClose }) => {
       notes: notes.trim()
     };
 
-    setCalendarAppointments(prev => [...prev, newApt]);
+    await createManualAppointment(newApt);
     if (showToast) {
       showToast(`¡Cita agendada para ${newApt.clientName} el ${date} a las ${time} (${staff?.name || 'Staff'})!`, 'success');
     }

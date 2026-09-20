@@ -23,7 +23,9 @@ const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   // ── UI State (still local — no need to sync across devices) ─────────────
-  const [currentView, setCurrentView] = useState('landing');
+  const [currentView, setCurrentView] = useState(() => {
+    try { return localStorage.getItem('styluu_view') || 'landing'; } catch { return 'landing'; }
+  });
   const [businessTab, setBusinessTab] = useState('calendar');
   const [selectedVenue, setSelectedVenue] = useState(VENUES[0]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,6 +58,11 @@ export const AppProvider = ({ children }) => {
   // ── Loading / error states ────────────────────────────────────────────────
   const [dbReady, setDbReady] = useState(false);
   const [dbError, setDbError] = useState(null);
+
+  // Persist view so page reload returns to the same section
+  useEffect(() => {
+    try { localStorage.setItem('styluu_view', currentView); } catch {}
+  }, [currentView]);
 
   // ── Initial data load from DB ─────────────────────────────────────────────
   useEffect(() => {
@@ -491,6 +498,20 @@ export const AppProvider = ({ children }) => {
     } catch (err) { showToast('Error al eliminar cita', 'error'); }
   }, []);
 
+  // Used by NewAppointmentModal to persist manually created appointments to DB
+  const createManualAppointment = useCallback(async (aptData) => {
+    try {
+      const saved = await appointmentsApi.create(aptData);
+      setCalendarAppointments(prev => [...prev, saved]);
+      return saved;
+    } catch (err) {
+      console.error('createManualAppointment error:', err);
+      // Fallback: show in UI even if API fails
+      setCalendarAppointments(prev => [...prev, aptData]);
+      return aptData;
+    }
+  }, []);
+
   const cancelClientBookingWithReason = useCallback(async (bookingId, reason = 'Cancelada por el cliente') => {
     const booking = clientBookings.find(b => b.id === bookingId);
     const calApt = calendarAppointments.find(a => a.bookingId === bookingId || a.id === bookingId);
@@ -732,7 +753,8 @@ export const AppProvider = ({ children }) => {
       updateStaffCommission, addStaffMember, updateStaffSchedule, deleteStaffMember,
       // Appointments
       calendarAppointments, setCalendarAppointments,
-      updateAppointmentStatus, clearCalendarAppointments, resetCalendarAppointments, deleteAppointment,
+      updateAppointmentStatus, clearCalendarAppointments, resetCalendarAppointments,
+      deleteAppointment, createManualAppointment,
       // Client bookings
       clientBookings, setClientBookings,
       cancelClientBooking, cancelClientBookingWithReason, rescheduleClientBooking,
