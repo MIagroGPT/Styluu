@@ -370,7 +370,9 @@ export const AppProvider = ({ children }) => {
   // ═══════════════════════════════════════════════════════════════════════════
   const addAppointment = useCallback(async (newBooking) => {
     const bookingId = `book-${Date.now()}`;
-    const bookingCode = `STY-${Math.floor(1000 + Math.random() * 9000)}-${newBooking.venue.category.toUpperCase().slice(0,3)}`;
+    // Defensive: category may be null if venue loaded from DB without it
+    const categoryCode = (newBooking.venue?.category || 'STY').toUpperCase().slice(0, 3);
+    const bookingCode = `STY-${Math.floor(1000 + Math.random() * 9000)}-${categoryCode}`;
 
     const clientEntry = {
       id: bookingId,
@@ -455,6 +457,7 @@ export const AppProvider = ({ children }) => {
       setConfirmedBookingData(savedBooking);
       showToast('¡Cita confirmada con éxito!', 'success');
     } catch (err) {
+      console.error('addAppointment error:', err);
       showToast('Error al confirmar la cita', 'error');
     }
   }, [clientsCRM]);
