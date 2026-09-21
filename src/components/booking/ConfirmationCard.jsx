@@ -19,7 +19,7 @@ import {
 
 export const ConfirmationCard = ({ booking, onClose }) => {
   const { t } = useLanguage();
-  const { setCurrentView } = useApp();
+  const { setCurrentView, formatMoney } = useApp();
 
   useEffect(() => {
     // Fire celebration confetti
@@ -118,7 +118,7 @@ export const ConfirmationCard = ({ booking, onClose }) => {
             </div>
           </div>
           <span className="font-display font-black text-lg text-brand-carbon">
-            ${booking.price}
+            {formatMoney ? formatMoney(booking.price) : `$${booking.price}`}
           </span>
         </div>
 

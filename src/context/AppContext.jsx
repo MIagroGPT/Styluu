@@ -354,6 +354,24 @@ export const AppProvider = ({ children }) => {
     } catch (err) { showToast('Error al actualizar horarios', 'error'); }
   }, [venues, staffMembers, activeVenue]);
 
+  const updateVenueServices = useCallback(async (venueId, newServices) => {
+    const targetVenueId = venueId || activeVenue?.id || 'venue-1';
+    const targetVenue = venues.find(v => v.id === targetVenueId) || activeVenue || VENUES[0];
+    const updatedVenueData = {
+      ...targetVenue,
+      services: newServices
+    };
+    try {
+      const savedVenue = await venuesApi.upsert(targetVenueId, updatedVenueData);
+      setVenues(prev => prev.map(v => v.id === targetVenueId ? savedVenue : v));
+      return savedVenue;
+    } catch (err) {
+      console.error('Error updating venue services:', err);
+      setVenues(prev => prev.map(v => v.id === targetVenueId ? updatedVenueData : v));
+      return updatedVenueData;
+    }
+  }, [venues, activeVenue]);
+
   // ═══════════════════════════════════════════════════════════════════════════
   //  TOAST
   // ═══════════════════════════════════════════════════════════════════════════
@@ -758,7 +776,7 @@ export const AppProvider = ({ children }) => {
       selectedLocation, setSelectedLocation,
       // Venues
       venues, setVenues,
-      getVenueOperatingHours, getStoreTimeSlots, updateVenueOperatingHours,
+      getVenueOperatingHours, getStoreTimeSlots, updateVenueOperatingHours, updateVenueServices,
       storeOperatingHours,
       // Staff
       staffMembers, setStaffMembers,

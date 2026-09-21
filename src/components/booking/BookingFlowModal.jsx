@@ -25,7 +25,8 @@ export const BookingFlowModal = () => {
     bookingVenue, 
     staffMembers, 
     addAppointment,
-    confirmedBookingData
+    confirmedBookingData,
+    formatMoney
   } = useApp();
 
   const [step, setStep] = useState(1); // 1: Services, 2: Staff, 3: Date/Time, 4: Customer Info
@@ -200,7 +201,7 @@ export const BookingFlowModal = () => {
 
                           <div className="flex items-center gap-3">
                             <span className="font-display font-black text-base text-brand-carbon">
-                              ${srv.price}
+                              {formatMoney(srv.price)}
                             </span>
                             <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${
                               isSelected ? 'bg-brand-purple text-white' : 'border border-slate-300 text-transparent'
@@ -429,7 +430,7 @@ export const BookingFlowModal = () => {
               <div>
                 <span className="text-[11px] text-slate-400 block font-medium">Total Estimado ({totalDuration} min)</span>
                 <span className="font-display font-black text-2xl text-brand-carbon">
-                  ${totalPrice}
+                  {formatMoney(totalPrice)}
                 </span>
               </div>
 
