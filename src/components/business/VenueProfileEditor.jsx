@@ -633,13 +633,21 @@ export const VenueProfileEditor = () => {
             </div>
 
             <div>
-              <label className="block text-slate-600 mb-1">Precio Inicial en Marketplace ($ USD)</label>
-              <input
-                type="number"
-                value={startingPrice}
-                onChange={(e) => setStartingPrice(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-brand-purple"
-              />
+              <label className="block text-slate-600 mb-1">
+                Precio Inicial en Marketplace ({currentCurrency?.currencyCode || 'COP'})
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-bold">
+                  {currentCurrency?.currencySymbol || '$'}
+                </span>
+                <input
+                  type="number"
+                  value={startingPrice}
+                  onChange={(e) => setStartingPrice(e.target.value)}
+                  step={['COP', 'CLP', 'ARS'].includes(currentCurrency?.currencyCode) ? '1000' : '1'}
+                  className="w-full pl-7 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-brand-purple font-bold text-brand-carbon"
+                />
+              </div>
             </div>
 
             {/* MASTER SALON OPERATING HOURS COMPONENT (DAY BY DAY CUSTOMIZATION) */}

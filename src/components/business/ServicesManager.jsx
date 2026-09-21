@@ -28,9 +28,25 @@ export const ServicesManager = () => {
     return Array.from(new Set([...BASE_SERVICE_CATEGORIES, ...fromServices]));
   }, [services]);
 
+  const isHighDenom = ['COP', 'CLP', 'ARS'].includes(currentCurrency?.currencyCode);
+  const isMedDenom = ['MXN', 'DOP'].includes(currentCurrency?.currencyCode);
+  const defaultPrice = isHighDenom ? 50000 : (isMedDenom ? 450 : 45);
+  const priceStep = isHighDenom ? 1000 : (isMedDenom ? 10 : 1);
+
+  const normalizeToLocalPrice = (val) => {
+    let num = Number(val) || 0;
+    if (isHighDenom && num > 0 && num < 1000) {
+      return Math.round(num * (currentCurrency?.rateMultiplier || 1));
+    }
+    if (isMedDenom && num > 0 && num < 100) {
+      return Math.round(num * (currentCurrency?.rateMultiplier || 1));
+    }
+    return num;
+  };
+
   // Form state for new service
   const [newName, setNewName] = useState('');
-  const [newPrice, setNewPrice] = useState(45);
+  const [newPrice, setNewPrice] = useState(defaultPrice);
   const [newDuration, setNewDuration] = useState(40);
   const [newCategory, setNewCategory] = useState('Cabello');
   const [isCustomCategory, setIsCustomCategory] = useState(false);
@@ -39,7 +55,7 @@ export const ServicesManager = () => {
 
   // Form state for editing service
   const [editName, setEditName] = useState('');
-  const [editPrice, setEditPrice] = useState(45);
+  const [editPrice, setEditPrice] = useState(defaultPrice);
   const [editDuration, setEditDuration] = useState(40);
   const [editCategory, setEditCategory] = useState('Cabello');
   const [isCustomEditCategory, setIsCustomEditCategory] = useState(false);
@@ -57,7 +73,7 @@ export const ServicesManager = () => {
   const handleStartEdit = (srv) => {
     setEditingService(srv);
     setEditName(srv.name || '');
-    setEditPrice(srv.price || 0);
+    setEditPrice(normalizeToLocalPrice(srv.price));
     setEditDuration(srv.duration || 30);
     const cat = srv.category || 'Cabello';
     setEditCategory(cat);
@@ -121,7 +137,7 @@ export const ServicesManager = () => {
     setServices(updated);
     setIsAdding(false);
     setNewName('');
-    setNewPrice(45);
+    setNewPrice(defaultPrice);
     setNewDuration(40);
     setNewDescription('');
     setIsCustomCategory(false);
@@ -244,17 +260,26 @@ export const ServicesManager = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-semibold">
             <div>
               <label className="block text-slate-500 mb-1">
-                Precio Base USD (Vista cliente: <span className="text-brand-purple font-bold">{formatMoney(newPrice)}</span>)
+                Precio del Servicio ({currentCurrency?.currencyCode || 'COP'})
               </label>
-              <input
-                type="number"
-                value={newPrice}
-                onChange={(e) => setNewPrice(e.target.value)}
-                required
-                min="0"
-                step="1"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-brand-purple"
-              />
+              <div className="relative">
+                <span className="absolute left-3 top-2 text-slate-400 text-xs font-bold">
+                  {currentCurrency?.currencySymbol || '$'}
+                </span>
+                <input
+                  type="number"
+                  value={newPrice}
+                  onChange={(e) => setNewPrice(e.target.value)}
+                  required
+                  min="0"
+                  step={priceStep}
+                  placeholder={isHighDenom ? '50000' : '45'}
+                  className="w-full pl-7 pr-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-brand-purple text-xs font-bold text-brand-carbon"
+                />
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                Vista previa: <span className="text-brand-purple font-bold">{formatMoney(newPrice)}</span>
+              </p>
             </div>
             <div>
               <label className="block text-slate-500 mb-1">Descripción corta</label>
@@ -372,25 +397,29 @@ export const ServicesManager = () => {
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-slate-500">Precio Base USD</label>
+                  <label className="text-slate-500">
+                    Precio del Servicio ({currentCurrency?.currencyCode || 'COP'})
+                  </label>
                   <span className="text-[11px] text-brand-purple font-black">
-                    Vista cliente: {formatMoney(editPrice)}
+                    Vista previa: {formatMoney(editPrice)}
                   </span>
                 </div>
                 <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-bold">$</span>
+                  <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-bold">
+                    {currentCurrency?.currencySymbol || '$'}
+                  </span>
                   <input
                     type="number"
                     value={editPrice}
                     onChange={(e) => setEditPrice(e.target.value)}
                     required
                     min="0"
-                    step="1"
+                    step={priceStep}
                     className="w-full pl-7 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-brand-purple text-sm font-bold text-brand-carbon"
                   />
                 </div>
                 <p className="text-[10px] text-slate-400 mt-1">
-                  Styluu convierte automáticamente el precio según la moneda ({currentCurrency.currencyCode}) que el cliente seleccione.
+                  El precio se guardará directamente en la moneda de tu negocio ({currentCurrency?.currencyName || 'COP'}).
                 </p>
               </div>
 

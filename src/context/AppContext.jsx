@@ -58,11 +58,12 @@ export const AppProvider = ({ children }) => {
 
   // ── Country / Currency (local preference) ───────────────────────────────
   const [selectedCountry, setSelectedCountry] = useState(() => {
-    try { return localStorage.getItem('styluu_country') || 'US'; } catch { return 'US'; }
+    try { return localStorage.getItem('styluu_country') || 'CO'; } catch { return 'CO'; }
   });
   const currentCurrency = (SUPPORTED_COUNTRIES_CURRENCIES && SUPPORTED_COUNTRIES_CURRENCIES[selectedCountry])
+    || (SUPPORTED_COUNTRIES_CURRENCIES && SUPPORTED_COUNTRIES_CURRENCIES.CO)
     || (SUPPORTED_COUNTRIES_CURRENCIES && SUPPORTED_COUNTRIES_CURRENCIES.US)
-    || { countryId: 'US', countryName: 'Estados Unidos', currencyCode: 'USD', currencySymbol: '$', flag: '🇺🇸', currencyName: 'Dólar Estadounidense (USD)', rateMultiplier: 1, displayFormat: '$', locale: 'en-US' };
+    || { countryId: 'CO', countryName: 'Colombia', currencyCode: 'COP', currencySymbol: '$', flag: '🇨🇴', currencyName: 'Peso Colombiano (COP)', rateMultiplier: 4200, displayFormat: '$', locale: 'es-CO' };
 
   // ── DB-synced data (initialized with mockData fallback to prevent undefined errors on first render) ──
   const [venues, setVenues] = useState(VENUES);
@@ -780,22 +781,30 @@ export const AppProvider = ({ children }) => {
   const setBusinessCountry = (countryCode) => {
     if (SUPPORTED_COUNTRIES_CURRENCIES[countryCode]) {
       setSelectedCountry(countryCode);
+      try { localStorage.setItem('styluu_country', countryCode); } catch {}
       const curr = SUPPORTED_COUNTRIES_CURRENCIES[countryCode];
       showToast(`Moneda configurada: ${curr.currencyName} (${curr.flag})`, 'success');
     }
   };
 
-  const formatMoney = (amountInUSD, showCode = true) => {
-    if (amountInUSD === undefined || amountInUSD === null || isNaN(amountInUSD)) return '$0';
-    const rate = currentCurrency.rateMultiplier || 1;
-    const converted = Number(amountInUSD) * rate;
+  const formatMoney = (amount, showCode = true) => {
+    if (amount === undefined || amount === null || isNaN(amount)) return '$0';
+    let val = Number(amount);
+    
+    // Auto-detect legacy USD amounts when in high-denomination currencies (e.g. COP, CLP, ARS)
+    if (['COP', 'CLP', 'ARS'].includes(currentCurrency.currencyCode) && val > 0 && val < 1000) {
+      val = val * (currentCurrency.rateMultiplier || 1);
+    } else if (['MXN', 'DOP'].includes(currentCurrency.currencyCode) && val > 0 && val < 100) {
+      val = val * (currentCurrency.rateMultiplier || 1);
+    }
+
     let formattedNumber;
     if (['COP','CLP','ARS'].includes(currentCurrency.currencyCode)) {
-      formattedNumber = Math.round(converted).toLocaleString('es-CO');
+      formattedNumber = Math.round(val).toLocaleString('es-CO');
     } else if (currentCurrency.currencyCode === 'EUR') {
-      formattedNumber = converted % 1 === 0 ? Math.round(converted).toLocaleString('es-ES') : converted.toFixed(2);
+      formattedNumber = val % 1 === 0 ? Math.round(val).toLocaleString('es-ES') : val.toFixed(2);
     } else {
-      formattedNumber = converted % 1 === 0 ? Math.round(converted).toLocaleString('en-US') : converted.toFixed(2);
+      formattedNumber = val % 1 === 0 ? Math.round(val).toLocaleString('en-US') : val.toFixed(2);
     }
     const symbol = currentCurrency.currencySymbol || '$';
     const code = showCode ? ` ${currentCurrency.currencyCode}` : '';

@@ -265,24 +265,40 @@ export const ProductsInventoryManager = () => {
             </div>
 
             <div>
-              <label className="block text-slate-500 mb-1">Precio de Venta al Público ($ USD)</label>
-              <input
-                type="number"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                required
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-brand-purple"
-              />
+              <label className="block text-slate-500 mb-1">
+                Precio de Venta al Público ({currentCurrency?.currencyCode || 'COP'})
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-bold">
+                  {currentCurrency?.currencySymbol || '$'}
+                </span>
+                <input
+                  type="number"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  required
+                  step={['COP', 'CLP', 'ARS'].includes(currentCurrency?.currencyCode) ? '1000' : '1'}
+                  className="w-full pl-7 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-brand-purple"
+                />
+              </div>
             </div>
 
             <div>
-              <label className="block text-slate-500 mb-1">Costo de Compra ($ USD)</label>
-              <input
-                type="number"
-                value={costPrice}
-                onChange={(e) => setCostPrice(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-brand-purple"
-              />
+              <label className="block text-slate-500 mb-1">
+                Costo de Compra ({currentCurrency?.currencyCode || 'COP'})
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-bold">
+                  {currentCurrency?.currencySymbol || '$'}
+                </span>
+                <input
+                  type="number"
+                  value={costPrice}
+                  onChange={(e) => setCostPrice(e.target.value)}
+                  step={['COP', 'CLP', 'ARS'].includes(currentCurrency?.currencyCode) ? '1000' : '1'}
+                  className="w-full pl-7 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-brand-purple"
+                />
+              </div>
             </div>
 
             <div>
@@ -597,12 +613,13 @@ export const ProductsInventoryManager = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 rounded-2xl bg-brand-purple/5 border border-brand-purple/20 space-y-1">
                   <label className="block text-brand-purple font-bold text-xs uppercase tracking-wider">
-                    Precio de Venta ($ USD)
+                    Precio de Venta ({currentCurrency?.currencyCode || 'COP'})
                   </label>
                   <input
                     type="number"
                     value={editPrice}
                     onChange={(e) => setEditPrice(e.target.value)}
+                    step={['COP', 'CLP', 'ARS'].includes(currentCurrency?.currencyCode) ? '1000' : '1'}
                     className="w-full px-3.5 py-2 rounded-xl border border-brand-purple/40 bg-white text-lg font-black text-brand-carbon focus:outline-none focus:border-brand-purple"
                     required
                   />
@@ -611,12 +628,13 @@ export const ProductsInventoryManager = () => {
 
                 <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
                   <label className="block text-slate-500 font-bold text-xs uppercase tracking-wider">
-                    Costo de Compra ($ USD)
+                    Costo de Compra ({currentCurrency?.currencyCode || 'COP'})
                   </label>
                   <input
                     type="number"
                     value={editCostPrice}
                     onChange={(e) => setEditCostPrice(e.target.value)}
+                    step={['COP', 'CLP', 'ARS'].includes(currentCurrency?.currencyCode) ? '1000' : '1'}
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-lg font-bold text-slate-700 focus:outline-none focus:border-brand-purple"
                   />
                   <span className="text-[10px] text-slate-400 block">Tu costo de adquisición</span>
