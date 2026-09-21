@@ -52,7 +52,11 @@ export const BusinessOS = () => {
   const [posAppointment, setPosAppointment] = useState(null);
   const [isPOSOpen, setIsPOSOpen] = useState(false);
 
-  const currentSalon = venues[0];
+  const currentSalon = (venues && venues[0]) || {
+    name: 'The Hustle Barber & Lounge',
+    city: 'Miami, FL',
+    image: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=400&q=80'
+  };
 
   const navItems = [
     { id: 'calendar', label: t('bos_calendar'), icon: Calendar, badge: `${calendarAppointments.length}` },
@@ -116,13 +120,13 @@ export const BusinessOS = () => {
           {/* Active Venue Selector Card */}
           <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center gap-3">
             <img
-              src={currentSalon.image}
-              alt={currentSalon.name}
+              src={currentSalon?.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=400&q=80'}
+              alt={currentSalon?.name || 'Styluu Salon'}
               className="w-10 h-10 rounded-xl object-cover border border-slate-600"
             />
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-xs text-white truncate">{currentSalon.name}</div>
-              <div className="text-[10px] text-slate-400 truncate">{currentSalon.city}</div>
+              <div className="font-bold text-xs text-white truncate">{currentSalon?.name || 'The Hustle Barber & Lounge'}</div>
+              <div className="text-[10px] text-slate-400 truncate">{currentSalon?.city || 'Miami, FL'}</div>
             </div>
           </div>
 

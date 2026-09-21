@@ -32,7 +32,20 @@ export const AppProvider = ({ children }) => {
       return 'landing';
     }
   });
-  const [businessTab, setBusinessTab] = useState('calendar');
+  const [businessTab, setBusinessTab] = useState(() => {
+    try {
+      const savedTab = localStorage.getItem('styluu_business_tab');
+      const validTabs = ['calendar', 'venue-profile', 'products', 'pos', 'clients', 'services', 'team', 'commissions', 'analytics'];
+      return validTabs.includes(savedTab) ? savedTab : 'calendar';
+    } catch {
+      return 'calendar';
+    }
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem('styluu_business_tab', businessTab); } catch {}
+  }, [businessTab]);
+
   const [selectedVenue, setSelectedVenue] = useState(VENUES[0]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -51,15 +64,15 @@ export const AppProvider = ({ children }) => {
     || (SUPPORTED_COUNTRIES_CURRENCIES && SUPPORTED_COUNTRIES_CURRENCIES.US)
     || { countryId: 'US', countryName: 'Estados Unidos', currencyCode: 'USD', currencySymbol: '$', flag: '🇺🇸', currencyName: 'Dólar Estadounidense (USD)', rateMultiplier: 1, displayFormat: '$', locale: 'en-US' };
 
-  // ── DB-synced data ────────────────────────────────────────────────────────
-  const [venues, setVenues] = useState([]);
-  const [staffMembers, setStaffMembers] = useState([]);
-  const [calendarAppointments, setCalendarAppointments] = useState([]);
+  // ── DB-synced data (initialized with mockData fallback to prevent undefined errors on first render) ──
+  const [venues, setVenues] = useState(VENUES);
+  const [staffMembers, setStaffMembers] = useState(STAFF_MEMBERS);
+  const [calendarAppointments, setCalendarAppointments] = useState(INITIAL_CALENDAR_APPOINTMENTS);
   const [clientBookings, setClientBookings] = useState([]);
-  const [clientsCRM, setClientsCRM] = useState([]);
+  const [clientsCRM, setClientsCRM] = useState(INITIAL_CLIENTS_CRM);
   const [salesTransactions, setSalesTransactions] = useState([]);
   const [payrollSettlements, setPayrollSettlements] = useState([]);
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState(INITIAL_RETAIL_PRODUCTS);
 
   // ── Loading / error states ────────────────────────────────────────────────
   const [dbReady, setDbReady] = useState(false);

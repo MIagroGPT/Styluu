@@ -25,7 +25,10 @@ class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     console.error("Styluu UI Error caught:", error, errorInfo);
   }
-  handleReset = () => {
+  handleReload = () => {
+    window.location.reload();
+  };
+  handleHome = () => {
     try { localStorage.removeItem('styluu_view'); } catch {}
     window.location.href = '/';
   };
@@ -37,16 +40,24 @@ class ErrorBoundary extends React.Component {
             <div className="w-14 h-14 mx-auto rounded-2xl bg-brand-purple/10 text-brand-purple flex items-center justify-center font-bold text-2xl">
               ✨
             </div>
-            <h2 className="text-xl font-black text-slate-900">Styluu se está reiniciando</h2>
+            <h2 className="text-xl font-black text-slate-900">Styluu</h2>
             <p className="text-xs text-slate-500">
-              Se detectó un cambio de estado. Haz clic abajo para refrescar.
+              Haz clic abajo para refrescar y continuar donde estabas.
             </p>
-            <button
-              onClick={this.handleReset}
-              className="w-full py-3.5 px-6 bg-brand-purple text-white rounded-2xl font-bold hover:opacity-95 transition-all shadow-brand-sm"
-            >
-              Volver al Inicio
-            </button>
+            <div className="space-y-2 pt-2">
+              <button
+                onClick={this.handleReload}
+                className="w-full py-3.5 px-6 bg-brand-purple text-white rounded-2xl font-bold hover:opacity-95 transition-all shadow-brand-sm"
+              >
+                Recargar página
+              </button>
+              <button
+                onClick={this.handleHome}
+                className="w-full py-2.5 px-6 bg-slate-100 text-slate-600 rounded-2xl font-bold text-xs hover:bg-slate-200 transition-all"
+              >
+                Volver al Inicio
+              </button>
+            </div>
           </div>
         </div>
       );
