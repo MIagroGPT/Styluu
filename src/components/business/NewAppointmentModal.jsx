@@ -229,11 +229,15 @@ export const NewAppointmentModal = ({ initialData, isOpen, onClose }) => {
                   onChange={(e) => setSelectedStaffId(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-brand-carbon focus:outline-none focus:border-brand-purple bg-slate-50/50 appearance-none pr-8 cursor-pointer"
                 >
-                  {staffMembers.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} ({s.role.split(' ')[0]})
-                    </option>
-                  ))}
+                  {staffMembers.map(s => {
+                    const assigned = s.assignedServices || s.schedule?.assignedServices || [];
+                    const isAuth = assigned.length === 0 || assigned.includes(selectedServiceId);
+                    return (
+                      <option key={s.id} value={s.id}>
+                        {isAuth ? '✓ ' : '⚠️ '}{s.name} ({s.role.split(' ')[0]})
+                      </option>
+                    );
+                  })}
                 </select>
                 <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>

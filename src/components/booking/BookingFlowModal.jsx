@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useApp } from '../../context/AppContext';
 import { ConfirmationCard } from './ConfirmationCard';
@@ -14,7 +14,8 @@ import {
   CreditCard, 
   Wallet, 
   ShieldCheck,
-  Star
+  Star,
+  AlertCircle
 } from 'lucide-react';
 
 export const BookingFlowModal = () => {
@@ -58,6 +59,45 @@ export const BookingFlowModal = () => {
   const [clientEmail, setClientEmail] = useState('diego.ramirez@mail.com');
   const [paymentMethod, setPaymentMethod] = useState('venue'); // 'venue' | 'online'
 
+  // Filter staff members who are authorized to perform ALL selected services
+  const eligibleStaff = useMemo(() => {
+    if (!selectedServices || selectedServices.length === 0) return staffMembers;
+
+    return staffMembers.filter(staff => {
+      const assigned = staff.assignedServices || staff.schedule?.assignedServices;
+      // If staff has configured assigned services
+      if (Array.isArray(assigned) && assigned.length > 0) {
+        return selectedServices.every(sel => assigned.includes(sel.id));
+      }
+
+      // Fallback for legacy staff where assignedServices hasn't been defined yet:
+      // Match keywords in role and specialties
+      if (Array.isArray(staff.specialties) && staff.specialties.length > 0) {
+        const staffKeywords = [
+          ...staff.specialties.map(s => s.toLowerCase()),
+          (staff.role || '').toLowerCase()
+        ];
+        return selectedServices.every(srv => {
+          const srvCat = (srv.category || '').toLowerCase();
+          const srvName = (srv.name || '').toLowerCase();
+          return staffKeywords.some(kw => 
+            (srvCat && (srvCat.includes(kw) || kw.includes(srvCat))) || 
+            (srvName && (srvName.includes(kw) || kw.includes(srvName)))
+          );
+        });
+      }
+
+      return true;
+    });
+  }, [staffMembers, selectedServices]);
+
+  // Reset selected staff if not in eligible list
+  useEffect(() => {
+    if (selectedStaff && !eligibleStaff.some(s => s.id === selectedStaff.id)) {
+      setSelectedStaff(null);
+    }
+  }, [eligibleStaff, selectedStaff]);
+
   if (!isBookingModalOpen || !bookingVenue) return null;
 
   const venueServices = bookingVenue.services || [];
@@ -91,10 +131,13 @@ export const BookingFlowModal = () => {
   ];
 
   const handleConfirmBooking = () => {
+    // If "Cualquier Profesional" was picked, assign one from eligibleStaff
+    const finalStaff = selectedStaff || eligibleStaff[0] || staffMembers[0];
+
     addAppointment({
       venue: bookingVenue,
       services: selectedServices,
-      staff: selectedStaff,
+      staff: finalStaff,
       date: selectedDate,
       timeSlot: selectedTimeSlot,
       totalPrice,
@@ -219,61 +262,88 @@ export const BookingFlowModal = () => {
               {/* STEP 2: SELECT SPECIALIST */}
               {step === 2 && (
                 <div className="space-y-4">
-                  <h4 className="font-bold text-base text-brand-carbon">
-                    ¿Con quién te gustaría atenderte?
-                  </h4>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Any specialist option */}
-                    <div
-                      onClick={() => setSelectedStaff(null)}
-                      className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
-                        selectedStaff === null
-                          ? 'border-brand-purple bg-brand-purple/5 ring-2 ring-brand-purple/20'
-                          : 'border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-brand-purple to-brand-mint text-white flex items-center justify-center font-bold">
-                        <Sparkles className="w-6 h-6" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-bold text-xs sm:text-sm text-brand-carbon">Cualquier Profesional</div>
-                        <div className="text-[11px] text-emerald-600 font-semibold">Mayor disponibilidad</div>
-                      </div>
-                      {selectedStaff === null && <Check className="w-5 h-5 text-brand-purple stroke-[3]" />}
-                    </div>
-
-                    {/* Staff members */}
-                    {staffMembers.map((staff) => {
-                      const isSelected = selectedStaff?.id === staff.id;
-                      return (
-                        <div
-                          key={staff.id}
-                          onClick={() => setSelectedStaff(staff)}
-                          className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
-                            isSelected
-                              ? 'border-brand-purple bg-brand-purple/5 ring-2 ring-brand-purple/20'
-                              : 'border-slate-200 hover:border-slate-300'
-                          }`}
-                        >
-                          <img
-                            src={staff.avatar}
-                            alt={staff.name}
-                            className="w-12 h-12 rounded-full object-cover border border-slate-200"
-                          />
-                          <div className="flex-1">
-                            <div className="font-bold text-xs sm:text-sm text-brand-carbon">{staff.name}</div>
-                            <div className="text-[11px] text-slate-500">{staff.role}</div>
-                            <div className="flex items-center gap-1 text-[10px] font-bold text-amber-500">
-                              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                              <span>{staff.rating}</span>
-                            </div>
-                          </div>
-                          {isSelected && <Check className="w-5 h-5 text-brand-purple stroke-[3]" />}
-                        </div>
-                      );
-                    })}
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-base text-brand-carbon">
+                      ¿Con quién te gustaría atenderte?
+                    </h4>
+                    <span className="text-xs text-brand-purple font-semibold">
+                      {eligibleStaff.length} disponible{eligibleStaff.length === 1 ? '' : 's'}
+                    </span>
                   </div>
+
+                  {eligibleStaff.length === 0 ? (
+                    <div className="p-6 rounded-2xl bg-amber-50 border border-amber-200 text-center space-y-3">
+                      <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
+                      <div>
+                        <h5 className="font-bold text-sm text-brand-carbon">
+                          No hay especialistas configurados para esta combinación
+                        </h5>
+                        <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+                          Los servicios seleccionados corresponden a áreas distintas del salón (ej. barbería y uñas). Te sugerimos reservar cada servicio de forma individual.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setStep(1)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple-dark text-white font-bold text-xs shadow-brand-sm cursor-pointer"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                        <span>Cambiar Servicios</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Any specialist option */}
+                      <div
+                        onClick={() => setSelectedStaff(null)}
+                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
+                          selectedStaff === null
+                            ? 'border-brand-purple bg-brand-purple/5 ring-2 ring-brand-purple/20'
+                            : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-brand-purple to-brand-mint text-white flex items-center justify-center font-bold">
+                          <Sparkles className="w-6 h-6" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-bold text-xs sm:text-sm text-brand-carbon">Cualquier Profesional</div>
+                          <div className="text-[11px] text-emerald-600 font-semibold">Asignación automática óptima</div>
+                        </div>
+                        {selectedStaff === null && <Check className="w-5 h-5 text-brand-purple stroke-[3]" />}
+                      </div>
+
+                      {/* Eligible Staff members */}
+                      {eligibleStaff.map((staff) => {
+                        const isSelected = selectedStaff?.id === staff.id;
+                        return (
+                          <div
+                            key={staff.id}
+                            onClick={() => setSelectedStaff(staff)}
+                            className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
+                              isSelected
+                                ? 'border-brand-purple bg-brand-purple/5 ring-2 ring-brand-purple/20'
+                                : 'border-slate-200 hover:border-slate-300'
+                            }`}
+                          >
+                            <img
+                              src={staff.avatar}
+                              alt={staff.name}
+                              className="w-12 h-12 rounded-full object-cover border border-slate-200"
+                            />
+                            <div className="flex-1">
+                              <div className="font-bold text-xs sm:text-sm text-brand-carbon">{staff.name}</div>
+                              <div className="text-[11px] text-slate-500">{staff.role}</div>
+                              <div className="flex items-center gap-1 text-[10px] font-bold text-amber-500">
+                                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                                <span>{staff.rating}</span>
+                              </div>
+                            </div>
+                            {isSelected && <Check className="w-5 h-5 text-brand-purple stroke-[3]" />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -436,8 +506,11 @@ export const BookingFlowModal = () => {
 
               {step < 4 ? (
                 <button
+                  disabled={step === 2 && eligibleStaff.length === 0}
                   onClick={() => setStep(step + 1)}
-                  className="px-6 py-3.5 rounded-2xl bg-brand-purple hover:bg-brand-purple-dark text-white font-extrabold text-sm shadow-brand-md flex items-center gap-2"
+                  className={`px-6 py-3.5 rounded-2xl bg-brand-purple hover:bg-brand-purple-dark text-white font-extrabold text-sm shadow-brand-md flex items-center gap-2 ${
+                    step === 2 && eligibleStaff.length === 0 ? 'opacity-40 cursor-not-allowed pointer-events-none' : 'cursor-pointer'
+                  }`}
                 >
                   <span>Continuar</span>
                   <ChevronRight className="w-4 h-4" />

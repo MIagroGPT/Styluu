@@ -210,10 +210,14 @@ export const AppProvider = ({ children }) => {
       color: staffData.color || '#6045F4',
       commissionRate: typeof staffData.commissionRate === 'number' ? staffData.commissionRate : 50,
       specialties: Array.isArray(staffData.specialties) ? staffData.specialties : ['Corte Clásico', 'Diseño de Barba'],
-      schedule: staffData.schedule || {
-        startHour: staffData.startHour || '09:00',
-        endHour: staffData.endHour || '19:00',
-        workDays: staffData.workDays || ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado']
+      assignedServices: Array.isArray(staffData.assignedServices) ? staffData.assignedServices : [],
+      schedule: {
+        ...(staffData.schedule || {
+          startHour: staffData.startHour || '09:00',
+          endHour: staffData.endHour || '19:00',
+          workDays: staffData.workDays || ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado']
+        }),
+        assignedServices: Array.isArray(staffData.assignedServices) ? staffData.assignedServices : []
       }
     };
     try {
@@ -224,10 +228,38 @@ export const AppProvider = ({ children }) => {
     } catch (err) { showToast('Error al añadir especialista', 'error'); }
   }, []);
 
+  const updateStaffMember = useCallback(async (staffId, updatedData) => {
+    const member = staffMembers.find(s => s.id === staffId);
+    if (!member) return;
+    const merged = { ...member, ...updatedData };
+    if (updatedData.assignedServices) {
+      merged.assignedServices = updatedData.assignedServices;
+      merged.schedule = {
+        ...(merged.schedule || {}),
+        assignedServices: updatedData.assignedServices
+      };
+    }
+    try {
+      const updated = await staffApi.update(staffId, merged);
+      setStaffMembers(prev => prev.map(s => s.id === staffId ? updated : s));
+      showToast('Especialista actualizado con éxito', 'success');
+      return updated;
+    } catch (err) {
+      setStaffMembers(prev => prev.map(s => s.id === staffId ? merged : s));
+      showToast('Especialista actualizado', 'info');
+      return merged;
+    }
+  }, [staffMembers]);
+
   const updateStaffSchedule = useCallback(async (staffId, scheduleData) => {
     const member = staffMembers.find(s => s.id === staffId);
     if (!member) return;
-    const updatedSchedule = { ...(member.schedule || { startHour:'09:00', endHour:'19:00', workDays:[] }), ...scheduleData };
+    const existingAssigned = member.assignedServices || member.schedule?.assignedServices || [];
+    const updatedSchedule = { 
+      ...(member.schedule || { startHour:'09:00', endHour:'19:00', workDays:[] }), 
+      ...scheduleData,
+      assignedServices: existingAssigned
+    };
     try {
       const updated = await staffApi.update(staffId, { ...member, schedule: updatedSchedule });
       setStaffMembers(prev => prev.map(s => s.id === staffId ? updated : s));

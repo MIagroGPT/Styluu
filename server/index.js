@@ -302,6 +302,7 @@ function mapStaffOut(r) {
     id: r.id, name: r.name, role: r.role, rating: Number(r.rating),
     reviewsCount: r.reviews_count, avatar: r.avatar, color: r.color,
     commissionRate: r.commission_rate, specialties: r.specialties,
+    assignedServices: (r.schedule && Array.isArray(r.schedule.assignedServices)) ? r.schedule.assignedServices : [],
     schedule: r.schedule, createdAt: r.created_at, updatedAt: r.updated_at,
   };
 }

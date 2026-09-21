@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useApp } from '../../context/AppContext';
-import { Plus, Scissors, Clock, DollarSign, Edit, Trash2, Check, X, Sparkles } from 'lucide-react';
+import { Plus, Scissors, Clock, DollarSign, Edit, Trash2, Check, X, Sparkles, Filter, Tag } from 'lucide-react';
 
-const SERVICE_CATEGORIES = [
+const BASE_SERVICE_CATEGORIES = [
   'Cabello',
   'Barba',
   'Combos',
@@ -20,12 +20,21 @@ export const ServicesManager = () => {
   const [services, setServices] = useState(activeVenue?.services || []);
   const [isAdding, setIsAdding] = useState(false);
   const [editingService, setEditingService] = useState(null);
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState('Todas');
+
+  // Dynamic list of categories from base + current venue services
+  const allCategories = useMemo(() => {
+    const fromServices = services.map(s => s.category).filter(Boolean);
+    return Array.from(new Set([...BASE_SERVICE_CATEGORIES, ...fromServices]));
+  }, [services]);
 
   // Form state for new service
   const [newName, setNewName] = useState('');
   const [newPrice, setNewPrice] = useState(45);
   const [newDuration, setNewDuration] = useState(40);
   const [newCategory, setNewCategory] = useState('Cabello');
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [customCategoryInput, setCustomCategoryInput] = useState('');
   const [newDescription, setNewDescription] = useState('');
 
   // Form state for editing service
@@ -33,6 +42,8 @@ export const ServicesManager = () => {
   const [editPrice, setEditPrice] = useState(45);
   const [editDuration, setEditDuration] = useState(40);
   const [editCategory, setEditCategory] = useState('Cabello');
+  const [isCustomEditCategory, setIsCustomEditCategory] = useState(false);
+  const [customEditCategoryInput, setCustomEditCategoryInput] = useState('');
   const [editDescription, setEditDescription] = useState('');
 
   // Synchronize when active venue updates in context
@@ -48,7 +59,11 @@ export const ServicesManager = () => {
     setEditName(srv.name || '');
     setEditPrice(srv.price || 0);
     setEditDuration(srv.duration || 30);
-    setEditCategory(srv.category || 'Cabello');
+    const cat = srv.category || 'Cabello';
+    setEditCategory(cat);
+    const isCustom = !BASE_SERVICE_CATEGORIES.includes(cat);
+    setIsCustomEditCategory(isCustom);
+    setCustomEditCategoryInput(isCustom ? cat : '');
     setEditDescription(srv.description || '');
   };
 
@@ -57,13 +72,17 @@ export const ServicesManager = () => {
     e.preventDefault();
     if (!editingService) return;
 
+    const finalCategory = isCustomEditCategory
+      ? (customEditCategoryInput.trim() || 'General')
+      : editCategory;
+
     const updated = services.map(s => {
       if (s.id === editingService.id) {
         return {
           ...s,
           name: editName.trim(),
           nameEn: editName.trim(),
-          category: editCategory,
+          category: finalCategory,
           duration: Number(editDuration) || 30,
           price: Number(editPrice) || 0,
           description: editDescription.trim() || s.description
@@ -84,6 +103,10 @@ export const ServicesManager = () => {
   // Add New Service
   const handleAddService = async (e) => {
     e.preventDefault();
+    const finalCategory = isCustomCategory
+      ? (customCategoryInput.trim() || 'General')
+      : newCategory;
+
     const created = {
       id: `srv-${Date.now()}`,
       name: newName.trim(),
@@ -91,7 +114,7 @@ export const ServicesManager = () => {
       description: newDescription.trim() || 'Servicio personalizado creado en el panel de control.',
       price: Number(newPrice) || 0,
       duration: Number(newDuration) || 30,
-      category: newCategory
+      category: finalCategory
     };
 
     const updated = [created, ...services];
@@ -101,6 +124,8 @@ export const ServicesManager = () => {
     setNewPrice(45);
     setNewDuration(40);
     setNewDescription('');
+    setIsCustomCategory(false);
+    setCustomCategoryInput('');
 
     if (updateVenueServices) {
       await updateVenueServices(activeVenue.id, updated);
@@ -175,14 +200,32 @@ export const ServicesManager = () => {
             <div>
               <label className="block text-slate-500 mb-1">Categoría</label>
               <select
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
+                value={isCustomCategory ? '__custom__' : newCategory}
+                onChange={(e) => {
+                  if (e.target.value === '__custom__') {
+                    setIsCustomCategory(true);
+                  } else {
+                    setIsCustomCategory(false);
+                    setNewCategory(e.target.value);
+                  }
+                }}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-brand-purple bg-white"
               >
-                {SERVICE_CATEGORIES.map(cat => (
+                {allCategories.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
+                <option value="__custom__">+ Otra Categoría...</option>
               </select>
+              {isCustomCategory && (
+                <input
+                  type="text"
+                  value={customCategoryInput}
+                  onChange={(e) => setCustomCategoryInput(e.target.value)}
+                  placeholder="Nombre de la nueva categoría..."
+                  required
+                  className="w-full mt-2 px-3 py-1.5 rounded-xl border border-brand-purple bg-brand-purple/5 text-xs font-bold text-brand-carbon focus:outline-none"
+                />
+              )}
             </div>
             <div>
               <label className="block text-slate-500 mb-1">Duración (min)</label>
@@ -286,14 +329,32 @@ export const ServicesManager = () => {
                 <div>
                   <label className="block text-slate-500 mb-1">Categoría</label>
                   <select
-                    value={editCategory}
-                    onChange={(e) => setEditCategory(e.target.value)}
+                    value={isCustomEditCategory ? '__custom__' : editCategory}
+                    onChange={(e) => {
+                      if (e.target.value === '__custom__') {
+                        setIsCustomEditCategory(true);
+                      } else {
+                        setIsCustomEditCategory(false);
+                        setEditCategory(e.target.value);
+                      }
+                    }}
                     className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-brand-purple text-xs"
                   >
-                    {SERVICE_CATEGORIES.map(cat => (
+                    {allCategories.map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
+                    <option value="__custom__">+ Otra Categoría...</option>
                   </select>
+                  {isCustomEditCategory && (
+                    <input
+                      type="text"
+                      value={customEditCategoryInput}
+                      onChange={(e) => setCustomEditCategoryInput(e.target.value)}
+                      placeholder="Nombre de la nueva categoría..."
+                      required
+                      className="w-full mt-2 px-3 py-1.5 rounded-xl border border-brand-purple bg-brand-purple/5 text-xs font-bold text-brand-carbon focus:outline-none"
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-slate-500 mb-1">Duración (minutos)</label>
@@ -365,48 +426,111 @@ export const ServicesManager = () => {
         </div>
       )}
 
+      {/* Category Filter Bar */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 pl-1">
+          <Filter className="w-3.5 h-3.5" /> Categorías:
+        </span>
+        <button
+          type="button"
+          onClick={() => setActiveCategoryFilter('Todas')}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+            activeCategoryFilter === 'Todas'
+              ? 'bg-brand-purple text-white shadow-brand-sm'
+              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          <span>Todas</span>
+          <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeCategoryFilter === 'Todas' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+            {services.length}
+          </span>
+        </button>
+        {allCategories.map(cat => {
+          const count = services.filter(s => s.category === cat).length;
+          return (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setActiveCategoryFilter(cat)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                activeCategoryFilter === cat
+                  ? 'bg-brand-purple text-white shadow-brand-sm'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <span>{cat}</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeCategoryFilter === cat ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Services Table */}
       <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-        <div className="divide-y divide-slate-100">
-          {services.map((srv) => (
-            <div key={srv.id} className="p-5 flex items-center justify-between gap-4 hover:bg-slate-50/60 transition-colors">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-sm text-brand-carbon">{srv.name}</span>
-                  <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold">
-                    {srv.category}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-400">{srv.description}</p>
-                <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-slate-400" /> {srv.duration} mins
-                  </span>
-                </div>
-              </div>
+        {(() => {
+          const filteredServices = activeCategoryFilter === 'Todas'
+            ? services
+            : services.filter(s => s.category === activeCategoryFilter);
 
-              <div className="flex items-center gap-3 sm:gap-4">
-                <span className="font-display font-black text-base sm:text-lg text-brand-carbon">
-                  {formatMoney(srv.price)}
-                </span>
-                <button
-                  onClick={() => handleStartEdit(srv)}
-                  className="p-2 rounded-xl text-slate-400 hover:text-brand-purple hover:bg-brand-purple/10 transition-colors"
-                  title="Editar servicio"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDeleteService(srv.id)}
-                  className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                  title="Eliminar servicio"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+          if (filteredServices.length === 0) {
+            return (
+              <div className="p-8 text-center space-y-2">
+                <Tag className="w-8 h-8 text-slate-300 mx-auto" />
+                <h4 className="font-bold text-sm text-brand-carbon">
+                  No hay servicios en la categoría "{activeCategoryFilter}"
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Haz clic en "+ Nuevo Servicio" para registrar un servicio en esta categoría.
+                </p>
               </div>
+            );
+          }
+
+          return (
+            <div className="divide-y divide-slate-100">
+              {filteredServices.map((srv) => (
+                <div key={srv.id} className="p-5 flex items-center justify-between gap-4 hover:bg-slate-50/60 transition-colors">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-brand-carbon">{srv.name}</span>
+                      <span className="px-2.5 py-0.5 rounded-full bg-brand-purple/10 text-brand-purple text-[10px] font-black">
+                        {srv.category}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400">{srv.description}</p>
+                    <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" /> {srv.duration} mins
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <span className="font-display font-black text-base sm:text-lg text-brand-carbon">
+                      {formatMoney(srv.price)}
+                    </span>
+                    <button
+                      onClick={() => handleStartEdit(srv)}
+                      className="p-2 rounded-xl text-slate-400 hover:text-brand-purple hover:bg-brand-purple/10 transition-colors"
+                      title="Editar servicio"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteService(srv.id)}
+                      className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                      title="Eliminar servicio"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          );
+        })()}
       </div>
 
     </div>

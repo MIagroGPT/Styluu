@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useApp } from '../../context/AppContext';
 import { 
@@ -23,7 +23,9 @@ import {
   Scissors,
   Upload,
   Camera,
-  Copy
+  Copy,
+  Tag,
+  Filter
 } from 'lucide-react';
 
 const COMMISSION_PRESETS = [35, 40, 45, 50, 55, 60];
@@ -58,12 +60,23 @@ export const StaffManager = () => {
     staffMembers, 
     updateStaffCommission, 
     addStaffMember, 
+    updateStaffMember,
     updateStaffSchedule, 
     deleteStaffMember, 
     setBusinessTab, 
     getVenueOperatingHours,
+    venues,
+    formatMoney,
     showToast 
   } = useApp();
+
+  const venueServices = venues?.[0]?.services || [];
+
+  // Distinct service categories from venue
+  const serviceCategories = useMemo(() => {
+    const cats = venueServices.map(s => s.category).filter(Boolean);
+    return ['Todas las Categorías', ...Array.from(new Set(cats))];
+  }, [venueServices]);
 
   const storeHours = getVenueOperatingHours ? getVenueOperatingHours() : {
     openingHour: '08:00',
@@ -84,12 +97,20 @@ export const StaffManager = () => {
 
   // Modal: Add Staff State
   const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false);
+  const [addStaffTab, setAddStaffTab] = useState('profile'); // 'profile' | 'services' | 'schedule'
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffRole, setNewStaffRole] = useState('Master Barber & Stylist');
   const [newStaffAvatar, setNewStaffAvatar] = useState('');
   const [newStaffColor, setNewStaffColor] = useState('#6045F4');
   const [newStaffCommission, setNewStaffCommission] = useState(50);
-  const [newStaffSpecialties, setNewStaffSpecialties] = useState('Corte Clásico, Barba VIP, Estilo');
+  const [newStaffSpecialties, setNewStaffSpecialties] = useState('');
+  const [newStaffAssignedServices, setNewStaffAssignedServices] = useState([]);
+  const [newStaffCategoryFilter, setNewStaffCategoryFilter] = useState('Todas las Categorías');
+
+  // Modal: Edit Assigned Services for existing Staff
+  const [servicesModalStaff, setServicesModalStaff] = useState(null);
+  const [editStaffAssignedServices, setEditStaffAssignedServices] = useState([]);
+  const [editStaffCategoryFilter, setEditStaffCategoryFilter] = useState('Todas las Categorías');
 
   const getInitialNewStaffDailyMap = () => {
     const map = {};
@@ -367,9 +388,94 @@ export const StaffManager = () => {
     setNewStaffName('');
     setNewStaffRole('Master Barber & Stylist');
     setNewStaffAvatar('');
+    setNewStaffColor('#6045F4');
     setNewStaffCommission(50);
+    setNewStaffSpecialties('');
+    setNewStaffAssignedServices([]);
+    setNewStaffCategoryFilter('Todas las Categorías');
+    setAddStaffTab('profile');
     setNewStaffDailySchedule(getInitialNewStaffDailyMap());
     setIsAddStaffModalOpen(true);
+  };
+
+  // Toggle service selection for new staff
+  const handleToggleNewStaffService = (serviceId) => {
+    setNewStaffAssignedServices(prev => 
+      prev.includes(serviceId) ? prev.filter(id => id !== serviceId) : [...prev, serviceId]
+    );
+  };
+
+  // Select/Deselect all services of a category for new staff
+  const handleSelectAllCategoryServices = (cat) => {
+    const targetServices = cat === 'Todas las Categorías'
+      ? venueServices
+      : venueServices.filter(s => s.category === cat);
+    const targetIds = targetServices.map(s => s.id);
+    const allAlreadySelected = targetIds.length > 0 && targetIds.every(id => newStaffAssignedServices.includes(id));
+
+    if (allAlreadySelected) {
+      setNewStaffAssignedServices(prev => prev.filter(id => !targetIds.includes(id)));
+    } else {
+      setNewStaffAssignedServices(prev => Array.from(new Set([...prev, ...targetIds])));
+    }
+  };
+
+  // Open Edit Services Modal for Existing Staff
+  const handleOpenServicesModal = (staff) => {
+    setServicesModalStaff(staff);
+    const assigned = staff.assignedServices || staff.schedule?.assignedServices || [];
+    setEditStaffAssignedServices(Array.isArray(assigned) ? [...assigned] : []);
+    setEditStaffCategoryFilter('Todas las Categorías');
+  };
+
+  // Toggle service selection for existing staff
+  const handleToggleEditStaffService = (serviceId) => {
+    setEditStaffAssignedServices(prev =>
+      prev.includes(serviceId) ? prev.filter(id => id !== serviceId) : [...prev, serviceId]
+    );
+  };
+
+  // Select/Deselect all services of a category for existing staff
+  const handleSelectAllEditCategoryServices = (cat) => {
+    const targetServices = cat === 'Todas las Categorías'
+      ? venueServices
+      : venueServices.filter(s => s.category === cat);
+    const targetIds = targetServices.map(s => s.id);
+    const allAlreadySelected = targetIds.length > 0 && targetIds.every(id => editStaffAssignedServices.includes(id));
+
+    if (allAlreadySelected) {
+      setEditStaffAssignedServices(prev => prev.filter(id => !targetIds.includes(id)));
+    } else {
+      setEditStaffAssignedServices(prev => Array.from(new Set([...prev, ...targetIds])));
+    }
+  };
+
+  // Save Services for Existing Staff
+  const handleSaveStaffServices = async (e) => {
+    e.preventDefault();
+    if (!servicesModalStaff) return;
+
+    if (editStaffAssignedServices.length === 0) {
+      showToast('Debes asignar al menos un servicio a este especialista', 'warning');
+      return;
+    }
+
+    const assignedServiceObjs = venueServices.filter(s => editStaffAssignedServices.includes(s.id));
+    const assignedCats = Array.from(new Set(assignedServiceObjs.map(s => s.category).filter(Boolean)));
+    const assignedNames = assignedServiceObjs.slice(0, 3).map(s => s.name);
+    const computedSpecialties = assignedCats.length > 0 ? assignedCats : assignedNames;
+
+    await updateStaffMember(servicesModalStaff.id, {
+      assignedServices: editStaffAssignedServices,
+      specialties: computedSpecialties.length > 0 ? computedSpecialties : servicesModalStaff.specialties,
+      schedule: {
+        ...(servicesModalStaff.schedule || {}),
+        assignedServices: editStaffAssignedServices
+      }
+    });
+
+    setServicesModalStaff(null);
+    showToast(`¡Servicios actualizados para ${servicesModalStaff.name}!`, 'success');
   };
 
   // Submit Add Staff
@@ -377,16 +483,24 @@ export const StaffManager = () => {
     e.preventDefault();
     if (!newStaffName.trim()) {
       showToast('Por favor introduce el nombre del especialista', 'warning');
+      setAddStaffTab('profile');
       return;
     }
     if (!newStaffAvatar) {
       showToast('Por favor carga la foto de perfil del especialista', 'warning');
+      setAddStaffTab('profile');
+      return;
+    }
+    if (newStaffAssignedServices.length === 0) {
+      showToast('Debes asignar al menos un servicio a este especialista según su profesión', 'warning');
+      setAddStaffTab('services');
       return;
     }
 
     const activeDays = Object.keys(newStaffDailySchedule).filter(d => newStaffDailySchedule[d]?.isWorking);
     if (activeDays.length === 0) {
       showToast('El especialista debe tener al menos un día asignado de trabajo', 'warning');
+      setAddStaffTab('schedule');
       return;
     }
 
@@ -398,10 +512,13 @@ export const StaffManager = () => {
       ? workingConfigs.reduce((max, d) => d.endHour > max ? d.endHour : max, '00:00')
       : '19:00';
 
-    const specsArray = newStaffSpecialties
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean);
+    const assignedServiceObjs = venueServices.filter(s => newStaffAssignedServices.includes(s.id));
+    const assignedCats = Array.from(new Set(assignedServiceObjs.map(s => s.category).filter(Boolean)));
+    const assignedNames = assignedServiceObjs.slice(0, 3).map(s => s.name);
+    const manualSpecs = newStaffSpecialties.split(',').map(s => s.trim()).filter(Boolean);
+    const finalSpecialties = manualSpecs.length > 0
+      ? manualSpecs
+      : (assignedCats.length > 0 ? assignedCats : assignedNames);
 
     addStaffMember({
       name: newStaffName.trim(),
@@ -409,12 +526,14 @@ export const StaffManager = () => {
       avatar: newStaffAvatar,
       color: newStaffColor,
       commissionRate: Number(newStaffCommission) || 50,
-      specialties: specsArray.length > 0 ? specsArray : ['Corte Clásico', 'Estilismo'],
+      specialties: finalSpecialties.length > 0 ? finalSpecialties : ['Estilismo'],
+      assignedServices: newStaffAssignedServices,
       schedule: {
         startHour: minStart,
         endHour: maxEnd,
         workDays: activeDays,
-        dailySchedule: newStaffDailySchedule
+        dailySchedule: newStaffDailySchedule,
+        assignedServices: newStaffAssignedServices
       }
     });
 
@@ -424,6 +543,8 @@ export const StaffManager = () => {
     setNewStaffAvatar('');
     setNewStaffRole('Master Barber & Stylist');
     setNewStaffCommission(50);
+    setNewStaffAssignedServices([]);
+    setAddStaffTab('profile');
   };
 
   return (
@@ -629,21 +750,34 @@ export const StaffManager = () => {
                 </div>
               </div>
 
-              {/* Card Footer: Horario & Shortcut */}
-              <div className="pt-3 border-t border-slate-100 space-y-2">
+              {/* Card Footer: Servicios, Horario & Shortcut */}
+              <div className="pt-3 border-t border-slate-100 space-y-2.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700">
                     <Clock className="w-3.5 h-3.5 text-brand-purple" />
                     <span>{schedule.startHour} - {schedule.endHour}</span>
                   </span>
 
-                  <button
-                    onClick={() => handleOpenScheduleModal(staff)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-brand-purple/10 text-slate-700 hover:text-brand-purple text-[11px] font-bold transition-colors cursor-pointer"
-                  >
-                    <Calendar className="w-3 h-3" />
-                    <span>Editar Horario</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => handleOpenServicesModal(staff)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand-purple/10 hover:bg-brand-purple hover:text-white text-brand-purple text-[11px] font-bold transition-all cursor-pointer"
+                      title="Asignar o editar los servicios que realiza este especialista"
+                    >
+                      <Scissors className="w-3 h-3" />
+                      <span>
+                        Servicios ({staff.assignedServices?.length || staff.schedule?.assignedServices?.length || 'Todos'})
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => handleOpenScheduleModal(staff)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-brand-purple/10 text-slate-700 hover:text-brand-purple text-[11px] font-bold transition-colors cursor-pointer"
+                    >
+                      <Calendar className="w-3 h-3" />
+                      <span>Horario</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
@@ -888,7 +1022,7 @@ export const StaffManager = () => {
       {/* ========================================================================= */}
       {isAddStaffModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-brand-carbon/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl space-y-5 animate-in fade-in duration-200 border border-slate-100 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-2xl w-full shadow-2xl space-y-5 animate-in fade-in duration-200 border border-slate-100 max-h-[90vh] overflow-y-auto">
             
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -901,7 +1035,7 @@ export const StaffManager = () => {
                     Añadir Nuevo Especialista
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Crea el perfil, comisión pactada y horario de trabajo.
+                    Crea el perfil, comisión pactada, servicios autorizados y horario de trabajo.
                   </p>
                 </div>
               </div>
@@ -914,318 +1048,707 @@ export const StaffManager = () => {
               </button>
             </div>
 
+            {/* Modal Tabs */}
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setAddStaffTab('profile')}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  addStaffTab === 'profile'
+                    ? 'bg-white text-brand-purple shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>1. Perfil</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAddStaffTab('services')}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  addStaffTab === 'services'
+                    ? 'bg-white text-brand-purple shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <Scissors className="w-3.5 h-3.5" />
+                <span>2. Servicios ({newStaffAssignedServices.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAddStaffTab('schedule')}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  addStaffTab === 'schedule'
+                    ? 'bg-white text-brand-purple shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>3. Horarios</span>
+              </button>
+            </div>
+
             <form onSubmit={handleAddStaffSubmit} className="space-y-4 text-xs font-semibold">
               
-              {/* Name & Role */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-600 mb-1 font-bold">Nombre Completo *</label>
-                  <input
-                    type="text"
-                    value={newStaffName}
-                    onChange={(e) => setNewStaffName(e.target.value)}
-                    placeholder="Ej: Alejandro Mendoza"
-                    required
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-brand-purple font-medium"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-slate-600 mb-1 font-bold">Cargo / Rol *</label>
-                  <input
-                    type="text"
-                    value={newStaffRole}
-                    onChange={(e) => setNewStaffRole(e.target.value)}
-                    placeholder="Ej: Master Barber, Colorista..."
-                    required
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-brand-purple font-medium"
-                  />
-                </div>
-              </div>
-
-              {/* Commission Rate Config */}
-              <div className="p-3.5 rounded-2xl bg-brand-soft-card border border-slate-200 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-slate-700 font-bold flex items-center gap-1">
-                    <Percent className="w-3.5 h-3.5 text-brand-purple" />
-                    Comisión Pactada (% sobre servicios):
-                  </label>
-                  <span className="font-display font-black text-brand-purple text-base">
-                    {newStaffCommission}%
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={newStaffCommission}
-                    onChange={(e) => setNewStaffCommission(Math.min(100, Math.max(0, Number(e.target.value))))}
-                    className="w-24 px-3 py-1.5 rounded-xl border border-slate-200 bg-white font-bold text-brand-carbon focus:outline-none focus:border-brand-purple"
-                  />
-                  <div className="flex flex-wrap gap-1">
-                    {COMMISSION_PRESETS.map(pct => (
-                      <button
-                        key={pct}
-                        type="button"
-                        onClick={() => setNewStaffCommission(pct)}
-                        className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
-                          newStaffCommission === pct
-                            ? 'bg-brand-purple text-white border-brand-purple'
-                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
-                        }`}
-                      >
-                        {pct}%
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Specialist Custom Photo Upload */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block text-slate-700 font-bold">
-                    Foto de Perfil del Especialista: *
-                  </label>
-                  <span className="text-[10px] text-slate-400">
-                    Carga exclusiva de foto propia
-                  </span>
-                </div>
-
-                {newStaffAvatar ? (
-                  <div className="flex items-center gap-4 p-3.5 rounded-2xl bg-brand-soft-card border border-brand-purple/30 shadow-xs">
-                    <img
-                      src={newStaffAvatar}
-                      alt="Foto del especialista"
-                      className="w-16 h-16 rounded-2xl object-cover border-2 border-brand-purple shadow-sm"
-                    />
-                    <div className="flex-1 space-y-1.5">
-                      <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>Foto cargada con éxito</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <label className="cursor-pointer px-3 py-1.5 rounded-xl bg-brand-purple hover:bg-brand-purple-dark text-white text-[11px] font-bold transition-all shadow-2xs">
-                          Cambiar Foto
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleAvatarFileChange}
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setNewStaffAvatar('')}
-                          className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-bold transition-all"
-                        >
-                          Quitar
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <label className="border-2 border-dashed border-slate-300 hover:border-brand-purple rounded-2xl p-5 flex flex-col items-center justify-center gap-2 cursor-pointer bg-slate-50/60 hover:bg-brand-purple/5 transition-all text-center">
-                    <div className="w-12 h-12 rounded-2xl bg-brand-purple/10 text-brand-purple flex items-center justify-center shadow-2xs">
-                      <Camera className="w-6 h-6" />
-                    </div>
+              {/* TAB 1: PERFIL & COMISIÓN */}
+              {addStaffTab === 'profile' && (
+                <div className="space-y-4">
+                  {/* Name & Role */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <span className="font-bold text-xs text-brand-carbon block">
-                        Haz clic aquí para cargar la foto del especialista
-                      </span>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">
-                        Admite fotos desde tu computadora o celular (JPG, PNG, WEBP)
+                      <label className="block text-slate-600 mb-1 font-bold">Nombre Completo *</label>
+                      <input
+                        type="text"
+                        value={newStaffName}
+                        onChange={(e) => setNewStaffName(e.target.value)}
+                        placeholder="Ej: Alejandro Mendoza"
+                        required
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-brand-purple font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-600 mb-1 font-bold">Cargo / Rol *</label>
+                      <input
+                        type="text"
+                        value={newStaffRole}
+                        onChange={(e) => setNewStaffRole(e.target.value)}
+                        placeholder="Ej: Master Barber, Especialista en Uñas..."
+                        required
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-brand-purple font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Specialist Custom Photo Upload */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-slate-700 font-bold">
+                        Foto de Perfil del Especialista: *
+                      </label>
+                      <span className="text-[10px] text-slate-400">
+                        Carga exclusiva de foto propia
                       </span>
                     </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleAvatarFileChange}
-                    />
-                  </label>
-                )}
-              </div>
 
-              {/* Color Selection for Calendar */}
-              <div className="space-y-1.5">
-                <label className="block text-slate-600 font-bold">Color Identificador en el Calendario:</label>
-                <div className="flex items-center gap-2">
-                  {PRESET_COLORS.map(color => (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() => setNewStaffColor(color)}
-                      className={`w-7 h-7 rounded-full transition-transform cursor-pointer border-2 ${
-                        newStaffColor === color ? 'scale-110 border-brand-carbon ring-2 ring-brand-purple/30' : 'border-white'
-                      }`}
-                      style={{ backgroundColor: color }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Specialties */}
-              <div>
-                <label className="block text-slate-600 mb-1 font-bold">Especialidades (separadas por coma):</label>
-                <input
-                  type="text"
-                  value={newStaffSpecialties}
-                  onChange={(e) => setNewStaffSpecialties(e.target.value)}
-                  placeholder="Ej: Fade Cuts, Diseño de Barba, Tinte..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-brand-purple font-medium"
-                />
-              </div>
-
-              {/* Day-by-day Schedule Configuration (Bounded by Store Hours) */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                      Horario por Día (Horario Maestro)
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      Configura el horario independiente para cada día de la semana.
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-brand-purple font-bold bg-brand-purple/10 px-2 py-0.5 rounded-md whitespace-nowrap">
-                    Salón: {storeHours.openingHour} - {storeHours.closingHour}
-                  </span>
-                </div>
-
-                {/* Day-by-Day List */}
-                <div className="space-y-2">
-                  {ALL_DAYS.map((day) => {
-                    const storeDay = storeHours.dailySchedule?.[day] || {
-                      isOpen: storeHours.openDays?.includes(day),
-                      openingHour: storeHours.openingHour || '09:00',
-                      closingHour: storeHours.closingHour || '20:00'
-                    };
-                    const isStoreOpen = Boolean(storeDay.isOpen);
-                    const staffDay = newStaffDailySchedule[day] || {
-                      isWorking: false,
-                      startHour: storeDay.openingHour,
-                      endHour: storeDay.closingHour
-                    };
-                    const isWorking = isStoreOpen && Boolean(staffDay.isWorking);
-
-                    const validStartOptions = TIME_OPTIONS.filter(
-                      t => t >= storeDay.openingHour && t < storeDay.closingHour
-                    );
-                    const validEndOptions = TIME_OPTIONS.filter(
-                      t => t > (staffDay.startHour || storeDay.openingHour) && t <= storeDay.closingHour
-                    );
-
-                    let duration = 0;
-                    if (isWorking && staffDay.startHour && staffDay.endHour) {
-                      const [sH, sM] = staffDay.startHour.split(':').map(Number);
-                      const [eH, eM] = staffDay.endHour.split(':').map(Number);
-                      duration = Math.max(0, ((eH * 60 + eM) - (sH * 60 + sM)) / 60);
-                    }
-
-                    return (
-                      <div
-                        key={day}
-                        className={`p-2.5 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
-                          !isStoreOpen
-                            ? 'bg-slate-100/50 border-slate-200 opacity-60'
-                            : isWorking
-                              ? 'bg-white border-brand-purple/30 shadow-2xs'
-                              : 'bg-slate-100/70 border-slate-200 text-slate-500'
-                        }`}
-                      >
-                        {/* Day and Status Toggle */}
-                        <div className="flex items-center gap-2 min-w-[130px]">
-                          <button
-                            type="button"
-                            disabled={!isStoreOpen}
-                            onClick={() => handleToggleNewStaffDay(day)}
-                            className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center gap-1 ${
-                              !isStoreOpen
-                                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                                : isWorking
-                                  ? 'bg-emerald-500 text-white shadow-2xs'
-                                  : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
-                            }`}
-                          >
-                            <span className={`w-1.5 h-1.5 rounded-full ${isWorking ? 'bg-white' : 'bg-slate-400'}`} />
-                            <span>{!isStoreOpen ? 'Cerrado' : (isWorking ? 'Trabaja' : 'Descanso')}</span>
-                          </button>
-
-                          <div>
-                            <span className={`font-bold text-xs ${isWorking ? 'text-brand-carbon' : 'text-slate-500'}`}>
-                              {day}
-                            </span>
-                            {isStoreOpen && (
-                              <span className="text-[9px] text-slate-400 block font-normal">
-                                Salón: {storeDay.openingHour} - {storeDay.closingHour}
-                              </span>
-                            )}
+                    {newStaffAvatar ? (
+                      <div className="flex items-center gap-4 p-3.5 rounded-2xl bg-brand-soft-card border border-brand-purple/30 shadow-xs">
+                        <img
+                          src={newStaffAvatar}
+                          alt="Foto del especialista"
+                          className="w-16 h-16 rounded-2xl object-cover border-2 border-brand-purple shadow-sm"
+                        />
+                        <div className="flex-1 space-y-1.5">
+                          <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>Foto cargada con éxito</span>
                           </div>
-                        </div>
-
-                        {/* Hours Selectors */}
-                        {isStoreOpen && isWorking ? (
-                          <div className="flex flex-wrap items-center gap-2 flex-1 sm:justify-end">
-                            <div className="flex items-center gap-1">
-                              <span className="text-[10px] text-slate-500">De:</span>
-                              <select
-                                value={staffDay.startHour || storeDay.openingHour}
-                                onChange={(e) => handleChangeNewStaffHour(day, 'startHour', e.target.value)}
-                                className="px-2 py-1 rounded-lg border border-slate-200 bg-white text-xs font-bold text-brand-carbon focus:outline-none focus:border-brand-purple cursor-pointer shadow-2xs"
-                              >
-                                {validStartOptions.map(t => (
-                                  <option key={t} value={t}>{t}</option>
-                                ))}
-                              </select>
-                            </div>
-
-                            <div className="flex items-center gap-1">
-                              <span className="text-[10px] text-slate-500">A:</span>
-                              <select
-                                value={staffDay.endHour || storeDay.closingHour}
-                                onChange={(e) => handleChangeNewStaffHour(day, 'endHour', e.target.value)}
-                                className="px-2 py-1 rounded-lg border border-slate-200 bg-white text-xs font-bold text-brand-carbon focus:outline-none focus:border-brand-purple cursor-pointer shadow-2xs"
-                              >
-                                {validEndOptions.map(t => (
-                                  <option key={t} value={t}>{t}</option>
-                                ))}
-                              </select>
-                            </div>
-
-                            {duration > 0 && (
-                              <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md">
-                                {duration % 1 === 0 ? duration : duration.toFixed(1)}h
-                              </span>
-                            )}
-
+                          <div className="flex items-center gap-2">
+                            <label className="cursor-pointer px-3 py-1.5 rounded-xl bg-brand-purple hover:bg-brand-purple-dark text-white text-[11px] font-bold transition-all shadow-2xs">
+                              Cambiar Foto
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleAvatarFileChange}
+                              />
+                            </label>
                             <button
                               type="button"
-                              onClick={() => handleCopyNewStaffScheduleToAll(day)}
-                              title={`Copiar horario de ${day} a todos los días`}
-                              className="p-1 rounded-md text-slate-400 hover:text-brand-purple hover:bg-slate-100 transition-colors"
+                              onClick={() => setNewStaffAvatar('')}
+                              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-bold transition-all"
                             >
-                              <Copy className="w-3.5 h-3.5" />
+                              Quitar
                             </button>
                           </div>
-                        ) : (
-                          <div className="text-[10px] text-slate-400 italic">
-                            {!isStoreOpen ? 'La tienda no abre este día' : 'Día libre asignado'}
-                          </div>
-                        )}
+                        </div>
                       </div>
+                    ) : (
+                      <label className="border-2 border-dashed border-slate-300 hover:border-brand-purple rounded-2xl p-5 flex flex-col items-center justify-center gap-2 cursor-pointer bg-slate-50/60 hover:bg-brand-purple/5 transition-all text-center">
+                        <div className="w-12 h-12 rounded-2xl bg-brand-purple/10 text-brand-purple flex items-center justify-center shadow-2xs">
+                          <Camera className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <span className="font-bold text-xs text-brand-carbon block">
+                            Haz clic aquí para cargar la foto del especialista
+                          </span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">
+                            Admite fotos desde tu computadora o celular (JPG, PNG, WEBP)
+                          </span>
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleAvatarFileChange}
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Commission Rate Config */}
+                  <div className="p-3.5 rounded-2xl bg-brand-soft-card border border-slate-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-slate-700 font-bold flex items-center gap-1">
+                        <Percent className="w-3.5 h-3.5 text-brand-purple" />
+                        Comisión Pactada (% sobre servicios):
+                      </label>
+                      <span className="font-display font-black text-brand-purple text-base">
+                        {newStaffCommission}%
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={newStaffCommission}
+                        onChange={(e) => setNewStaffCommission(Math.min(100, Math.max(0, Number(e.target.value))))}
+                        className="w-24 px-3 py-1.5 rounded-xl border border-slate-200 bg-white font-bold text-brand-carbon focus:outline-none focus:border-brand-purple"
+                      />
+                      <div className="flex flex-wrap gap-1">
+                        {COMMISSION_PRESETS.map(pct => (
+                          <button
+                            key={pct}
+                            type="button"
+                            onClick={() => setNewStaffCommission(pct)}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                              newStaffCommission === pct
+                                ? 'bg-brand-purple text-white border-brand-purple'
+                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            {pct}%
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Color Selection for Calendar */}
+                  <div className="space-y-1.5">
+                    <label className="block text-slate-600 font-bold">Color Identificador en el Calendario:</label>
+                    <div className="flex items-center gap-2">
+                      {PRESET_COLORS.map(color => (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => setNewStaffColor(color)}
+                          className={`w-7 h-7 rounded-full transition-transform cursor-pointer border-2 ${
+                            newStaffColor === color ? 'scale-110 border-brand-carbon ring-2 ring-brand-purple/30' : 'border-white'
+                          }`}
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: SERVICIOS ASIGNADOS */}
+              {addStaffTab === 'services' && (
+                <div className="space-y-3.5">
+                  <div className="p-3.5 rounded-2xl bg-brand-purple/5 border border-brand-purple/20 space-y-1">
+                    <div className="flex items-center gap-2 text-brand-carbon font-bold">
+                      <Sparkles className="w-4 h-4 text-brand-purple flex-shrink-0" />
+                      <span>Servicios que Presta este Especialista:</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Selecciona únicamente los servicios que este especialista presta según su oficio (ej. barbero = cortes y barba; manicurista = uñas). El sistema <strong>evitará automáticamente</strong> agendar servicios de cabello a manicuristas o viceversa.
+                    </p>
+                  </div>
+
+                  {/* Category Filter Pills */}
+                  <div className="space-y-1.5">
+                    <label className="block text-slate-700 font-bold text-xs flex items-center gap-1">
+                      <Filter className="w-3.5 h-3.5 text-brand-purple" />
+                      Filtrar por Categoría:
+                    </label>
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                      {serviceCategories.map(cat => {
+                        const count = cat === 'Todas las Categorías'
+                          ? venueServices.length
+                          : venueServices.filter(s => s.category === cat).length;
+                        const isSelected = newStaffCategoryFilter === cat;
+                        return (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setNewStaffCategoryFilter(cat)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                              isSelected
+                                ? 'bg-brand-purple text-white shadow-2xs'
+                                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span>{cat}</span>
+                            <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                              {count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Category Batch Action Header */}
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-xs font-bold text-brand-carbon">
+                      {newStaffAssignedServices.length} de {venueServices.length} servicios asignados
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectAllCategoryServices(newStaffCategoryFilter)}
+                      className="text-xs font-bold text-brand-purple hover:underline cursor-pointer"
+                    >
+                      {(() => {
+                        const targetServices = newStaffCategoryFilter === 'Todas las Categorías'
+                          ? venueServices
+                          : venueServices.filter(s => s.category === newStaffCategoryFilter);
+                        const allSelected = targetServices.length > 0 && targetServices.every(s => newStaffAssignedServices.includes(s.id));
+                        return allSelected ? 'Deseleccionar todos de esta categoría' : 'Marcar todos de esta categoría';
+                      })()}
+                    </button>
+                  </div>
+
+                  {/* Services Checklist */}
+                  <div className="max-h-[340px] overflow-y-auto space-y-2 pr-1">
+                    {(() => {
+                      const displayedServices = newStaffCategoryFilter === 'Todas las Categorías'
+                        ? venueServices
+                        : venueServices.filter(s => s.category === newStaffCategoryFilter);
+
+                      if (displayedServices.length === 0) {
+                        return (
+                          <div className="p-6 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                            No hay servicios registrados en esta categoría en el establecimiento.
+                          </div>
+                        );
+                      }
+
+                      return displayedServices.map(srv => {
+                        const isAssigned = newStaffAssignedServices.includes(srv.id);
+                        return (
+                          <div
+                            key={srv.id}
+                            onClick={() => handleToggleNewStaffService(srv.id)}
+                            className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                              isAssigned
+                                ? 'border-brand-purple bg-brand-purple/5 shadow-2xs ring-1 ring-brand-purple/30'
+                                : 'border-slate-200 bg-white hover:border-slate-300'
+                            }`}
+                          >
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-xs text-brand-carbon">{srv.name}</span>
+                                <span className="px-2 py-0.2 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold">
+                                  {srv.category}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {srv.duration} min</span>
+                                <span>•</span>
+                                <span>{srv.description || 'Servicio estándar'}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              <span className="font-display font-black text-xs text-brand-carbon">
+                                {formatMoney(srv.price)}
+                              </span>
+                              <div className={`w-5 h-5 rounded-lg flex items-center justify-center transition-all ${
+                                isAssigned ? 'bg-brand-purple text-white' : 'border border-slate-300 text-transparent'
+                              }`}>
+                                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: HORARIOS POR DÍA */}
+              {addStaffTab === 'schedule' && (
+                <div className="space-y-3">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                          Horario por Día (Horario Maestro)
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          Configura la jornada independiente de cada día dentro de los límites del salón.
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-brand-purple font-bold bg-brand-purple/10 px-2 py-0.5 rounded-md whitespace-nowrap">
+                        Salón: {storeHours.openingHour} - {storeHours.closingHour}
+                      </span>
+                    </div>
+
+                    {/* Day-by-Day List */}
+                    <div className="space-y-2 pt-1">
+                      {ALL_DAYS.map((day) => {
+                        const storeDay = storeHours.dailySchedule?.[day] || {
+                          isOpen: storeHours.openDays?.includes(day),
+                          openingHour: storeHours.openingHour || '09:00',
+                          closingHour: storeHours.closingHour || '20:00'
+                        };
+                        const isStoreOpen = Boolean(storeDay.isOpen);
+                        const staffDay = newStaffDailySchedule[day] || {
+                          isWorking: false,
+                          startHour: storeDay.openingHour,
+                          endHour: storeDay.closingHour
+                        };
+                        const isWorking = isStoreOpen && Boolean(staffDay.isWorking);
+
+                        const validStartOptions = TIME_OPTIONS.filter(
+                          t => t >= storeDay.openingHour && t < storeDay.closingHour
+                        );
+                        const validEndOptions = TIME_OPTIONS.filter(
+                          t => t > (staffDay.startHour || storeDay.openingHour) && t <= storeDay.closingHour
+                        );
+
+                        let duration = 0;
+                        if (isWorking && staffDay.startHour && staffDay.endHour) {
+                          const [sH, sM] = staffDay.startHour.split(':').map(Number);
+                          const [eH, eM] = staffDay.endHour.split(':').map(Number);
+                          duration = Math.max(0, ((eH * 60 + eM) - (sH * 60 + sM)) / 60);
+                        }
+
+                        return (
+                          <div
+                            key={day}
+                            className={`p-2.5 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
+                              !isStoreOpen
+                                ? 'bg-slate-100/50 border-slate-200 opacity-60'
+                                : isWorking
+                                  ? 'bg-white border-brand-purple/30 shadow-2xs'
+                                  : 'bg-slate-100/70 border-slate-200 text-slate-500'
+                            }`}
+                          >
+                            {/* Day and Status Toggle */}
+                            <div className="flex items-center gap-2 min-w-[130px]">
+                              <button
+                                type="button"
+                                disabled={!isStoreOpen}
+                                onClick={() => handleToggleNewStaffDay(day)}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center gap-1 ${
+                                  !isStoreOpen
+                                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                    : isWorking
+                                      ? 'bg-emerald-500 text-white shadow-2xs'
+                                      : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                                }`}
+                              >
+                                <span className={`w-1.5 h-1.5 rounded-full ${isWorking ? 'bg-white' : 'bg-slate-400'}`} />
+                                <span>{!isStoreOpen ? 'Cerrado' : (isWorking ? 'Trabaja' : 'Descanso')}</span>
+                              </button>
+
+                              <div>
+                                <span className={`font-bold text-xs ${isWorking ? 'text-brand-carbon' : 'text-slate-500'}`}>
+                                  {day}
+                                </span>
+                                {isStoreOpen && (
+                                  <span className="text-[9px] text-slate-400 block font-normal">
+                                    Salón: {storeDay.openingHour} - {storeDay.closingHour}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Hours Selectors */}
+                            {isStoreOpen && isWorking ? (
+                              <div className="flex flex-wrap items-center gap-2 flex-1 sm:justify-end">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[10px] text-slate-500">De:</span>
+                                  <select
+                                    value={staffDay.startHour || storeDay.openingHour}
+                                    onChange={(e) => handleChangeNewStaffHour(day, 'startHour', e.target.value)}
+                                    className="px-2 py-1 rounded-lg border border-slate-200 bg-white text-xs font-bold text-brand-carbon focus:outline-none focus:border-brand-purple cursor-pointer shadow-2xs"
+                                  >
+                                    {validStartOptions.map(t => (
+                                      <option key={t} value={t}>{t}</option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[10px] text-slate-500">A:</span>
+                                  <select
+                                    value={staffDay.endHour || storeDay.closingHour}
+                                    onChange={(e) => handleChangeNewStaffHour(day, 'endHour', e.target.value)}
+                                    className="px-2 py-1 rounded-lg border border-slate-200 bg-white text-xs font-bold text-brand-carbon focus:outline-none focus:border-brand-purple cursor-pointer shadow-2xs"
+                                  >
+                                    {validEndOptions.map(t => (
+                                      <option key={t} value={t}>{t}</option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                {duration > 0 && (
+                                  <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md">
+                                    {duration % 1 === 0 ? duration : duration.toFixed(1)}h
+                                  </span>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyNewStaffScheduleToAll(day)}
+                                  title={`Copiar horario de ${day} a todos los días`}
+                                  className="p-1 rounded-md text-slate-400 hover:text-brand-purple hover:bg-slate-100 transition-colors"
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="text-[10px] text-slate-400 italic">
+                                {!isStoreOpen ? 'La tienda no abre este día' : 'Día libre asignado'}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Modal Actions */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                <div>
+                  {addStaffTab !== 'profile' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (addStaffTab === 'schedule') setAddStaffTab('services');
+                        else if (addStaffTab === 'services') setAddStaffTab('profile');
+                      }}
+                      className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                    >
+                      Anterior
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddStaffModalOpen(false)}
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+
+                  {addStaffTab !== 'schedule' ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (addStaffTab === 'profile') {
+                          if (!newStaffName.trim()) {
+                            showToast('Por favor escribe el nombre del especialista', 'warning');
+                            return;
+                          }
+                          if (!newStaffAvatar) {
+                            showToast('Por favor carga la foto de perfil del especialista', 'warning');
+                            return;
+                          }
+                          setAddStaffTab('services');
+                        } else if (addStaffTab === 'services') {
+                          if (newStaffAssignedServices.length === 0) {
+                            showToast('Selecciona al menos 1 servicio que este especialista prestará', 'warning');
+                            return;
+                          }
+                          setAddStaffTab('schedule');
+                        }
+                      }}
+                      className="px-5 py-2.5 rounded-xl bg-brand-purple hover:bg-brand-purple-dark text-white text-xs font-black shadow-brand-sm flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>Siguiente</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      className="px-5 py-2.5 rounded-xl bg-brand-purple hover:bg-brand-purple-dark text-white text-xs font-black shadow-brand-sm cursor-pointer"
+                    >
+                      Guardar Especialista
+                    </button>
+                  )}
+                </div>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 3: ASIGNAR / EDITAR SERVICIOS DE UN ESPECIALISTA EXISTENTE          */}
+      {/* ========================================================================= */}
+      {servicesModalStaff && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-brand-carbon/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-2xl w-full shadow-2xl space-y-5 animate-in fade-in duration-200 border border-slate-100 max-h-[90vh] overflow-y-auto">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <img
+                  src={servicesModalStaff.avatar}
+                  alt={servicesModalStaff.name}
+                  className="w-11 h-11 rounded-full object-cover border-2 border-brand-purple/30 shadow-xs"
+                />
+                <div>
+                  <h3 className="font-bold text-base text-brand-carbon leading-tight">
+                    Servicios Asignados al Especialista
+                  </h3>
+                  <p className="text-xs text-brand-purple font-semibold">
+                    {servicesModalStaff.name} • {servicesModalStaff.role}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setServicesModalStaff(null)}
+                className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveStaffServices} className="space-y-4 text-xs font-semibold">
+              
+              <div className="p-3.5 rounded-2xl bg-brand-purple/5 border border-brand-purple/20 space-y-1">
+                <div className="flex items-center gap-2 text-brand-carbon font-bold">
+                  <Sparkles className="w-4 h-4 text-brand-purple flex-shrink-0" />
+                  <span>Configuración de Especialidad:</span>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Marca únicamente los servicios que {servicesModalStaff.name} realiza en el salón. Cuando un cliente elija un servicio en la reserva web, el sistema <strong>solo mostrará a los especialistas habilitados</strong> para ese servicio.
+                </p>
+              </div>
+
+              {/* Category Filter Pills */}
+              <div className="space-y-1.5">
+                <label className="block text-slate-700 font-bold text-xs flex items-center gap-1">
+                  <Filter className="w-3.5 h-3.5 text-brand-purple" />
+                  Filtrar por Categoría:
+                </label>
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                  {serviceCategories.map(cat => {
+                    const count = cat === 'Todas las Categorías'
+                      ? venueServices.length
+                      : venueServices.filter(s => s.category === cat).length;
+                    const isSelected = editStaffCategoryFilter === cat;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setEditStaffCategoryFilter(cat)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                          isSelected
+                            ? 'bg-brand-purple text-white shadow-2xs'
+                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span>{cat}</span>
+                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                          {count}
+                        </span>
+                      </button>
                     );
                   })}
                 </div>
+              </div>
+
+              {/* Header with counter and toggle all */}
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-xs font-bold text-brand-carbon">
+                  {editStaffAssignedServices.length} de {venueServices.length} servicios asignados
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleSelectAllEditCategoryServices(editStaffCategoryFilter)}
+                  className="text-xs font-bold text-brand-purple hover:underline cursor-pointer"
+                >
+                  {(() => {
+                    const targetServices = editStaffCategoryFilter === 'Todas las Categorías'
+                      ? venueServices
+                      : venueServices.filter(s => s.category === editStaffCategoryFilter);
+                    const allSelected = targetServices.length > 0 && targetServices.every(s => editStaffAssignedServices.includes(s.id));
+                    return allSelected ? 'Deseleccionar todos de esta categoría' : 'Marcar todos de esta categoría';
+                  })()}
+                </button>
+              </div>
+
+              {/* Services Checklist */}
+              <div className="max-h-[350px] overflow-y-auto space-y-2 pr-1">
+                {(() => {
+                  const displayedServices = editStaffCategoryFilter === 'Todas las Categorías'
+                    ? venueServices
+                    : venueServices.filter(s => s.category === editStaffCategoryFilter);
+
+                  if (displayedServices.length === 0) {
+                    return (
+                      <div className="p-6 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        No hay servicios registrados en esta categoría en el establecimiento.
+                      </div>
+                    );
+                  }
+
+                  return displayedServices.map(srv => {
+                    const isAssigned = editStaffAssignedServices.includes(srv.id);
+                    return (
+                      <div
+                        key={srv.id}
+                        onClick={() => handleToggleEditStaffService(srv.id)}
+                        className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                          isAssigned
+                            ? 'border-brand-purple bg-brand-purple/5 shadow-2xs ring-1 ring-brand-purple/30'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xs text-brand-carbon">{srv.name}</span>
+                            <span className="px-2 py-0.2 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold">
+                              {srv.category}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                            <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {srv.duration} min</span>
+                            <span>•</span>
+                            <span>{srv.description || 'Servicio estándar'}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <span className="font-display font-black text-xs text-brand-carbon">
+                            {formatMoney(srv.price)}
+                          </span>
+                          <div className={`w-5 h-5 rounded-lg flex items-center justify-center transition-all ${
+                            isAssigned ? 'bg-brand-purple text-white' : 'border border-slate-300 text-transparent'
+                          }`}>
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
 
               {/* Modal Actions */}
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsAddStaffModalOpen(false)}
+                  onClick={() => setServicesModalStaff(null)}
                   className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
                 >
                   Cancelar
@@ -1234,7 +1757,7 @@ export const StaffManager = () => {
                   type="submit"
                   className="px-5 py-2.5 rounded-xl bg-brand-purple hover:bg-brand-purple-dark text-white text-xs font-black shadow-brand-sm cursor-pointer"
                 >
-                  Guardar Especialista
+                  Guardar Servicios Asignados
                 </button>
               </div>
 
