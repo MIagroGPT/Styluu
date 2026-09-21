@@ -12,8 +12,8 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Accept API URL as build argument so Vite bakes it into the bundle
-ARG VITE_API_URL
+# Accept API URL as build argument so Vite bakes it into the bundle (with default fallback)
+ARG VITE_API_URL=https://styluu-styluu-api.cyalcb.easypanel.host
 ENV VITE_API_URL=$VITE_API_URL
 
 # Ensure binary execution permissions

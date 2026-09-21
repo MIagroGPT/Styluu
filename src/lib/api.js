@@ -5,7 +5,8 @@
  * In production:  calls go to VITE_API_URL (e.g. https://styluu-api.easypanel.host)
  */
 
-const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const PROD_API_URL = 'https://styluu-styluu-api.cyalcb.easypanel.host';
+const BASE = (import.meta.env.VITE_API_URL || (import.meta.env.PROD ? PROD_API_URL : '')).replace(/\/$/, '');
 
 async function request(method, path, body) {
   const res = await fetch(`${BASE}${path}`, {
