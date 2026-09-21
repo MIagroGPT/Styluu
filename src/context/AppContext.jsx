@@ -24,7 +24,13 @@ const AppContext = createContext();
 export const AppProvider = ({ children }) => {
   // ── UI State (still local — no need to sync across devices) ─────────────
   const [currentView, setCurrentView] = useState(() => {
-    try { return localStorage.getItem('styluu_view') || 'landing'; } catch { return 'landing'; }
+    try {
+      const saved = localStorage.getItem('styluu_view');
+      const valid = ['landing', 'explore', 'venue-detail', 'my-bookings', 'business-os'];
+      return valid.includes(saved) ? saved : 'landing';
+    } catch {
+      return 'landing';
+    }
   });
   const [businessTab, setBusinessTab] = useState('calendar');
   const [selectedVenue, setSelectedVenue] = useState(VENUES[0]);
@@ -96,17 +102,17 @@ export const AppProvider = ({ children }) => {
         if (!venuesData.length) {
           await venuesApi.bulkInsert(VENUES);
           const freshVenues = await venuesApi.list();
-          setVenues(freshVenues.length ? freshVenues : VENUES);
+          setVenues(Array.isArray(freshVenues) && freshVenues.length ? freshVenues : VENUES);
         } else {
-          setVenues(venuesData);
+          setVenues(Array.isArray(venuesData) ? venuesData : VENUES);
         }
 
         if (!staffData.length) {
           await staffApi.bulkInsert(STAFF_MEMBERS);
           const freshStaff = await staffApi.list();
-          setStaffMembers(freshStaff.length ? freshStaff : STAFF_MEMBERS);
+          setStaffMembers(Array.isArray(freshStaff) && freshStaff.length ? freshStaff : STAFF_MEMBERS);
         } else {
-          setStaffMembers(staffData);
+          setStaffMembers(Array.isArray(staffData) ? staffData : STAFF_MEMBERS);
         }
 
         if (!aptsData.length) {
@@ -114,9 +120,9 @@ export const AppProvider = ({ children }) => {
             await appointmentsApi.create(apt).catch(() => {});
           }
           const freshApts = await appointmentsApi.list();
-          setCalendarAppointments(freshApts);
+          setCalendarAppointments(Array.isArray(freshApts) ? freshApts : INITIAL_CALENDAR_APPOINTMENTS);
         } else {
-          setCalendarAppointments(aptsData);
+          setCalendarAppointments(Array.isArray(aptsData) ? aptsData : INITIAL_CALENDAR_APPOINTMENTS);
         }
 
         if (!clientsData.length) {
@@ -124,22 +130,22 @@ export const AppProvider = ({ children }) => {
             await clientsApi.create(c).catch(() => {});
           }
           const freshClients = await clientsApi.list();
-          setClientsCRM(freshClients);
+          setClientsCRM(Array.isArray(freshClients) ? freshClients : INITIAL_CLIENTS_CRM);
         } else {
-          setClientsCRM(clientsData);
+          setClientsCRM(Array.isArray(clientsData) ? clientsData : INITIAL_CLIENTS_CRM);
         }
 
         if (!productsData.length) {
           await productsApi.bulkInsert(INITIAL_RETAIL_PRODUCTS);
           const freshProducts = await productsApi.list();
-          setProducts(freshProducts);
+          setProducts(Array.isArray(freshProducts) ? freshProducts : INITIAL_RETAIL_PRODUCTS);
         } else {
-          setProducts(productsData);
+          setProducts(Array.isArray(productsData) ? productsData : INITIAL_RETAIL_PRODUCTS);
         }
 
-        setClientBookings(bookingsData);
-        setSalesTransactions(txData);
-        setPayrollSettlements(settlementsData);
+        setClientBookings(Array.isArray(bookingsData) ? bookingsData : []);
+        setSalesTransactions(Array.isArray(txData) ? txData : []);
+        setPayrollSettlements(Array.isArray(settlementsData) ? settlementsData : []);
         setDbReady(true);
       } catch (err) {
         if (!cancelled) {
@@ -151,6 +157,9 @@ export const AppProvider = ({ children }) => {
           setCalendarAppointments(INITIAL_CALENDAR_APPOINTMENTS);
           setClientsCRM(INITIAL_CLIENTS_CRM);
           setProducts(INITIAL_RETAIL_PRODUCTS);
+          setClientBookings([]);
+          setSalesTransactions([]);
+          setPayrollSettlements([]);
           setDbReady(true);
         }
       }

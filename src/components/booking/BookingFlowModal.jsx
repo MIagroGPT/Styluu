@@ -111,7 +111,7 @@ export const BookingFlowModal = () => {
         
         {/* If confirmation done, show confirmation card */}
         {confirmedBookingData ? (
-          <div className="p-6">
+          <div className="p-4 sm:p-6 overflow-y-auto max-h-[90vh]">
             <ConfirmationCard booking={confirmedBookingData} onClose={closeBookingModal} />
           </div>
         ) : (

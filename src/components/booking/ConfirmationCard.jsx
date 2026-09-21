@@ -13,7 +13,8 @@ import {
   Share2, 
   Check, 
   Sparkles,
-  Smartphone
+  Smartphone,
+  X
 } from 'lucide-react';
 
 export const ConfirmationCard = ({ booking, onClose }) => {
@@ -38,8 +39,20 @@ export const ConfirmationCard = ({ booking, onClose }) => {
   };
 
   return (
-    <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full mx-auto text-center space-y-6">
+    <div className="relative bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full mx-auto text-center space-y-6">
       
+      {/* Close button (X) */}
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors z-20 cursor-pointer shadow-xs"
+          title="Cerrar"
+          aria-label="Cerrar"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      )}
+
       {/* Top Success Badge with Royal Purple / Neon Green accent */}
       <div className="flex justify-center">
         <div className="w-20 h-20 rounded-full bg-brand-purple flex items-center justify-center shadow-purple-glow animate-bounce">

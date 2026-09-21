@@ -14,6 +14,47 @@ import { ClientPortal } from './components/client/ClientPortal';
 import { BusinessOS } from './components/business/BusinessOS';
 import { Sparkles, ArrowRight, ShieldCheck, Check } from 'lucide-react';
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("Styluu UI Error caught:", error, errorInfo);
+  }
+  handleReset = () => {
+    try { localStorage.removeItem('styluu_view'); } catch {}
+    window.location.href = '/';
+  };
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 text-center font-sans">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl space-y-4 border border-slate-100">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-brand-purple/10 text-brand-purple flex items-center justify-center font-bold text-2xl">
+              ✨
+            </div>
+            <h2 className="text-xl font-black text-slate-900">Styluu se está reiniciando</h2>
+            <p className="text-xs text-slate-500">
+              Se detectó un cambio de estado. Haz clic abajo para refrescar.
+            </p>
+            <button
+              onClick={this.handleReset}
+              className="w-full py-3.5 px-6 bg-brand-purple text-white rounded-2xl font-bold hover:opacity-95 transition-all shadow-brand-sm"
+            >
+              Volver al Inicio
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const MainContent = () => {
   const { currentView } = useApp();
 
@@ -27,6 +68,8 @@ const MainContent = () => {
     );
   }
 
+  const isKnownView = ['landing', 'explore', 'venue-detail', 'my-bookings'].includes(currentView);
+
   return (
     <div className="min-h-screen flex flex-col bg-brand-soft-canvas text-brand-carbon font-sans selection:bg-brand-purple selection:text-white">
       {/* Universal Top Header */}
@@ -34,7 +77,7 @@ const MainContent = () => {
 
       {/* Dynamic View Router */}
       <main className="flex-1">
-        {currentView === 'landing' && (
+        {(currentView === 'landing' || !isKnownView) && (
           <>
             <Hero />
             <CategoryGrid />
@@ -70,11 +113,13 @@ const MainContent = () => {
 
 export function App() {
   return (
-    <LanguageProvider>
-      <AppProvider>
-        <MainContent />
-      </AppProvider>
-    </LanguageProvider>
+    <ErrorBoundary>
+      <LanguageProvider>
+        <AppProvider>
+          <MainContent />
+        </AppProvider>
+      </LanguageProvider>
+    </ErrorBoundary>
   );
 }
 

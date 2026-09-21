@@ -64,8 +64,8 @@ export const ClientPortal = () => {
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('10:30 AM');
 
-  const upcomingBookings = clientBookings.filter(b => b.status === 'confirmed');
-  const pastBookings = clientBookings.filter(b => b.status === 'completed' || b.status === 'cancelled');
+  const upcomingBookings = (Array.isArray(clientBookings) ? clientBookings : []).filter(b => b && b.status === 'confirmed');
+  const pastBookings = (Array.isArray(clientBookings) ? clientBookings : []).filter(b => b && (b.status === 'completed' || b.status === 'cancelled'));
 
   const handleOpenActionModal = (booking, type = 'reschedule') => {
     setModalBooking(booking);

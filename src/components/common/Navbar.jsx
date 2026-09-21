@@ -33,7 +33,7 @@ export const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCurrencyDropdownOpen, setIsCurrencyDropdownOpen] = useState(false);
 
-  const activeBookingsCount = clientBookings.filter(b => b.status === 'confirmed').length;
+  const activeBookingsCount = (Array.isArray(clientBookings) ? clientBookings : []).filter(b => b && b.status === 'confirmed').length;
 
   return (
     <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-sm transition-all">
