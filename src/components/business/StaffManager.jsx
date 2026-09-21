@@ -20,7 +20,10 @@ import {
   Trash2,
   CheckCircle2,
   User,
-  Scissors
+  Scissors,
+  Upload,
+  Camera,
+  Copy
 } from 'lucide-react';
 
 const COMMISSION_PRESETS = [35, 40, 45, 50, 55, 60];
@@ -83,13 +86,31 @@ export const StaffManager = () => {
   const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false);
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffRole, setNewStaffRole] = useState('Master Barber & Stylist');
-  const [newStaffAvatar, setNewStaffAvatar] = useState(PRESET_AVATARS[0].url);
+  const [newStaffAvatar, setNewStaffAvatar] = useState('');
   const [newStaffColor, setNewStaffColor] = useState('#6045F4');
   const [newStaffCommission, setNewStaffCommission] = useState(50);
   const [newStaffSpecialties, setNewStaffSpecialties] = useState('Corte Clásico, Barba VIP, Estilo');
-  const [newStaffStartHour, setNewStaffStartHour] = useState(storeHours.openingHour || '09:00');
-  const [newStaffEndHour, setNewStaffEndHour] = useState(storeHours.closingHour || '19:00');
-  const [newStaffWorkDays, setNewStaffWorkDays] = useState(storeHours.openDays || ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']);
+
+  const getInitialNewStaffDailyMap = () => {
+    const map = {};
+    ALL_DAYS.forEach(day => {
+      const storeDay = storeHours.dailySchedule?.[day] || { 
+        isOpen: storeHours.openDays?.includes(day), 
+        openingHour: storeHours.openingHour || '09:00', 
+        closingHour: storeHours.closingHour || '20:00' 
+      };
+
+      const isStoreOpen = Boolean(storeDay.isOpen);
+      map[day] = {
+        isWorking: isStoreOpen && day !== 'Domingo',
+        startHour: storeDay.openingHour || '09:00',
+        endHour: storeDay.closingHour || '19:00'
+      };
+    });
+    return map;
+  };
+
+  const [newStaffDailySchedule, setNewStaffDailySchedule] = useState(() => getInitialNewStaffDailyMap());
 
   // Modal: Edit Schedule State (Day by Day bounded by Store Hours)
   const [scheduleModalStaff, setScheduleModalStaff] = useState(null);
@@ -255,11 +276,99 @@ export const StaffManager = () => {
     }
   };
 
+  // Handle Avatar File Upload via FileReader (Base64)
+  const handleAvatarFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('Por favor selecciona un archivo de imagen válido (JPG, PNG, WEBP)', 'warning');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('La imagen no debe superar los 5MB de tamaño', 'warning');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setNewStaffAvatar(event.target.result);
+      showToast('¡Foto cargada exitosamente!', 'success');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Toggle Day for New Staff
+  const handleToggleNewStaffDay = (day) => {
+    const storeDay = storeHours.dailySchedule?.[day] || { isOpen: false };
+    if (!storeDay.isOpen) {
+      showToast(`El salón está cerrado los ${day}s según el horario del negocio`, 'warning');
+      return;
+    }
+    setNewStaffDailySchedule(prev => {
+      const current = prev[day] || { isWorking: false, startHour: storeDay.openingHour || '09:00', endHour: storeDay.closingHour || '20:00' };
+      return {
+        ...prev,
+        [day]: {
+          ...current,
+          isWorking: !current.isWorking
+        }
+      };
+    });
+  };
+
+  // Change Hour for New Staff Day
+  const handleChangeNewStaffHour = (day, field, val) => {
+    setNewStaffDailySchedule(prev => {
+      const current = prev[day] || {};
+      return {
+        ...prev,
+        [day]: {
+          ...current,
+          [field]: val
+        }
+      };
+    });
+  };
+
+  // Copy New Staff Day Schedule to All Working Days
+  const handleCopyNewStaffScheduleToAll = (sourceDay) => {
+    const source = newStaffDailySchedule[sourceDay];
+    if (!source || !source.isWorking) {
+      showToast('El día seleccionado debe estar activo para copiar su horario', 'warning');
+      return;
+    }
+
+    setNewStaffDailySchedule(prev => {
+      const updated = { ...prev };
+      ALL_DAYS.forEach(day => {
+        const storeDay = storeHours.dailySchedule?.[day];
+        if (storeDay && storeDay.isOpen) {
+          let sH = source.startHour;
+          let eH = source.endHour;
+          if (sH < storeDay.openingHour) sH = storeDay.openingHour;
+          if (sH >= storeDay.closingHour) sH = storeDay.openingHour;
+          if (eH > storeDay.closingHour) eH = storeDay.closingHour;
+          if (eH <= sH) eH = storeDay.closingHour;
+
+          updated[day] = {
+            isWorking: true,
+            startHour: sH,
+            endHour: eH
+          };
+        }
+      });
+      return updated;
+    });
+
+    showToast(`Horario de ${sourceDay} copiado a los demás días hábiles del salón`, 'info');
+  };
+
   // Open Add Staff Modal
   const handleOpenAddStaffModal = () => {
-    setNewStaffStartHour(storeHours.openingHour || '09:00');
-    setNewStaffEndHour(storeHours.closingHour || '19:00');
-    setNewStaffWorkDays(storeHours.openDays || ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']);
+    setNewStaffName('');
+    setNewStaffRole('Master Barber & Stylist');
+    setNewStaffAvatar('');
+    setNewStaffCommission(50);
+    setNewStaffDailySchedule(getInitialNewStaffDailyMap());
     setIsAddStaffModalOpen(true);
   };
 
@@ -270,6 +379,24 @@ export const StaffManager = () => {
       showToast('Por favor introduce el nombre del especialista', 'warning');
       return;
     }
+    if (!newStaffAvatar) {
+      showToast('Por favor carga la foto de perfil del especialista', 'warning');
+      return;
+    }
+
+    const activeDays = Object.keys(newStaffDailySchedule).filter(d => newStaffDailySchedule[d]?.isWorking);
+    if (activeDays.length === 0) {
+      showToast('El especialista debe tener al menos un día asignado de trabajo', 'warning');
+      return;
+    }
+
+    const workingConfigs = Object.values(newStaffDailySchedule).filter(d => d.isWorking);
+    const minStart = workingConfigs.length > 0 
+      ? workingConfigs.reduce((min, d) => d.startHour < min ? d.startHour : min, '23:59')
+      : '09:00';
+    const maxEnd = workingConfigs.length > 0
+      ? workingConfigs.reduce((max, d) => d.endHour > max ? d.endHour : max, '00:00')
+      : '19:00';
 
     const specsArray = newStaffSpecialties
       .split(',')
@@ -284,15 +411,17 @@ export const StaffManager = () => {
       commissionRate: Number(newStaffCommission) || 50,
       specialties: specsArray.length > 0 ? specsArray : ['Corte Clásico', 'Estilismo'],
       schedule: {
-        startHour: newStaffStartHour,
-        endHour: newStaffEndHour,
-        workDays: newStaffWorkDays
+        startHour: minStart,
+        endHour: maxEnd,
+        workDays: activeDays,
+        dailySchedule: newStaffDailySchedule
       }
     });
 
     setIsAddStaffModalOpen(false);
     // Reset form
     setNewStaffName('');
+    setNewStaffAvatar('');
     setNewStaffRole('Master Barber & Stylist');
     setNewStaffCommission(50);
   };
@@ -854,27 +983,70 @@ export const StaffManager = () => {
                 </div>
               </div>
 
-              {/* Avatar Selection */}
+              {/* Specialist Custom Photo Upload */}
               <div className="space-y-2">
-                <label className="block text-slate-600 font-bold">Seleccionar Avatar / Foto de Perfil:</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {PRESET_AVATARS.map((av, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => setNewStaffAvatar(av.url)}
-                      className={`p-1.5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col items-center gap-1 ${
-                        newStaffAvatar === av.url 
-                          ? 'border-brand-purple bg-brand-purple/5 shadow-xs' 
-                          : 'border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      <img src={av.url} alt={av.label} className="w-10 h-10 rounded-full object-cover" />
-                      <span className="text-[9px] font-medium text-slate-500 truncate w-full text-center">
-                        {av.label}
+                <div className="flex items-center justify-between">
+                  <label className="block text-slate-700 font-bold">
+                    Foto de Perfil del Especialista: *
+                  </label>
+                  <span className="text-[10px] text-slate-400">
+                    Carga exclusiva de foto propia
+                  </span>
+                </div>
+
+                {newStaffAvatar ? (
+                  <div className="flex items-center gap-4 p-3.5 rounded-2xl bg-brand-soft-card border border-brand-purple/30 shadow-xs">
+                    <img
+                      src={newStaffAvatar}
+                      alt="Foto del especialista"
+                      className="w-16 h-16 rounded-2xl object-cover border-2 border-brand-purple shadow-sm"
+                    />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Foto cargada con éxito</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="cursor-pointer px-3 py-1.5 rounded-xl bg-brand-purple hover:bg-brand-purple-dark text-white text-[11px] font-bold transition-all shadow-2xs">
+                          Cambiar Foto
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleAvatarFileChange}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setNewStaffAvatar('')}
+                          className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-bold transition-all"
+                        >
+                          Quitar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="border-2 border-dashed border-slate-300 hover:border-brand-purple rounded-2xl p-5 flex flex-col items-center justify-center gap-2 cursor-pointer bg-slate-50/60 hover:bg-brand-purple/5 transition-all text-center">
+                    <div className="w-12 h-12 rounded-2xl bg-brand-purple/10 text-brand-purple flex items-center justify-center shadow-2xs">
+                      <Camera className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <span className="font-bold text-xs text-brand-carbon block">
+                        Haz clic aquí para cargar la foto del especialista
+                      </span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">
+                        Admite fotos desde tu computadora o celular (JPG, PNG, WEBP)
                       </span>
                     </div>
-                  ))}
-                </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarFileChange}
+                    />
+                  </label>
+                )}
               </div>
 
               {/* Color Selection for Calendar */}
@@ -907,61 +1079,143 @@ export const StaffManager = () => {
                 />
               </div>
 
-              {/* Schedule Range */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
-                    Horario de Trabajo
-                  </span>
-                  <span className="text-[10px] text-brand-purple font-bold bg-brand-purple/10 px-2 py-0.5 rounded-md">
+              {/* Day-by-day Schedule Configuration (Bounded by Store Hours) */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                      Horario por Día (Horario Maestro)
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      Configura el horario independiente para cada día de la semana.
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-brand-purple font-bold bg-brand-purple/10 px-2 py-0.5 rounded-md whitespace-nowrap">
                     Salón: {storeHours.openingHour} - {storeHours.closingHour}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-slate-500 mb-1 text-[11px]">Entrada:</label>
-                    <select
-                      value={newStaffStartHour}
-                      onChange={(e) => setNewStaffStartHour(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold"
-                    >
-                      {activeTimeOptions.map(time => (
-                        <option key={time} value={time}>{time}</option>
-                      ))}
-                    </select>
-                  </div>
+                {/* Day-by-Day List */}
+                <div className="space-y-2">
+                  {ALL_DAYS.map((day) => {
+                    const storeDay = storeHours.dailySchedule?.[day] || {
+                      isOpen: storeHours.openDays?.includes(day),
+                      openingHour: storeHours.openingHour || '09:00',
+                      closingHour: storeHours.closingHour || '20:00'
+                    };
+                    const isStoreOpen = Boolean(storeDay.isOpen);
+                    const staffDay = newStaffDailySchedule[day] || {
+                      isWorking: false,
+                      startHour: storeDay.openingHour,
+                      endHour: storeDay.closingHour
+                    };
+                    const isWorking = isStoreOpen && Boolean(staffDay.isWorking);
 
-                  <div>
-                    <label className="block text-slate-500 mb-1 text-[11px]">Salida:</label>
-                    <select
-                      value={newStaffEndHour}
-                      onChange={(e) => setNewStaffEndHour(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold"
-                    >
-                      {activeTimeOptions.map(time => (
-                        <option key={time} value={time}>{time}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                    const validStartOptions = TIME_OPTIONS.filter(
+                      t => t >= storeDay.openingHour && t < storeDay.closingHour
+                    );
+                    const validEndOptions = TIME_OPTIONS.filter(
+                      t => t > (staffDay.startHour || storeDay.openingHour) && t <= storeDay.closingHour
+                    );
 
-                <div className="flex flex-wrap gap-1 pt-1">
-                  {ALL_DAYS.map(day => {
-                    const isSelected = newStaffWorkDays.includes(day);
+                    let duration = 0;
+                    if (isWorking && staffDay.startHour && staffDay.endHour) {
+                      const [sH, sM] = staffDay.startHour.split(':').map(Number);
+                      const [eH, eM] = staffDay.endHour.split(':').map(Number);
+                      duration = Math.max(0, ((eH * 60 + eM) - (sH * 60 + sM)) / 60);
+                    }
+
                     return (
-                      <button
+                      <div
                         key={day}
-                        type="button"
-                        onClick={() => toggleWorkDay(day, newStaffWorkDays, setNewStaffWorkDays)}
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-all cursor-pointer ${
-                          isSelected 
-                            ? 'bg-brand-purple text-white border-brand-purple' 
-                            : 'bg-white text-slate-500 border-slate-200'
+                        className={`p-2.5 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
+                          !isStoreOpen
+                            ? 'bg-slate-100/50 border-slate-200 opacity-60'
+                            : isWorking
+                              ? 'bg-white border-brand-purple/30 shadow-2xs'
+                              : 'bg-slate-100/70 border-slate-200 text-slate-500'
                         }`}
                       >
-                        {day.slice(0, 3)}
-                      </button>
+                        {/* Day and Status Toggle */}
+                        <div className="flex items-center gap-2 min-w-[130px]">
+                          <button
+                            type="button"
+                            disabled={!isStoreOpen}
+                            onClick={() => handleToggleNewStaffDay(day)}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center gap-1 ${
+                              !isStoreOpen
+                                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                : isWorking
+                                  ? 'bg-emerald-500 text-white shadow-2xs'
+                                  : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${isWorking ? 'bg-white' : 'bg-slate-400'}`} />
+                            <span>{!isStoreOpen ? 'Cerrado' : (isWorking ? 'Trabaja' : 'Descanso')}</span>
+                          </button>
+
+                          <div>
+                            <span className={`font-bold text-xs ${isWorking ? 'text-brand-carbon' : 'text-slate-500'}`}>
+                              {day}
+                            </span>
+                            {isStoreOpen && (
+                              <span className="text-[9px] text-slate-400 block font-normal">
+                                Salón: {storeDay.openingHour} - {storeDay.closingHour}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Hours Selectors */}
+                        {isStoreOpen && isWorking ? (
+                          <div className="flex flex-wrap items-center gap-2 flex-1 sm:justify-end">
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-slate-500">De:</span>
+                              <select
+                                value={staffDay.startHour || storeDay.openingHour}
+                                onChange={(e) => handleChangeNewStaffHour(day, 'startHour', e.target.value)}
+                                className="px-2 py-1 rounded-lg border border-slate-200 bg-white text-xs font-bold text-brand-carbon focus:outline-none focus:border-brand-purple cursor-pointer shadow-2xs"
+                              >
+                                {validStartOptions.map(t => (
+                                  <option key={t} value={t}>{t}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-slate-500">A:</span>
+                              <select
+                                value={staffDay.endHour || storeDay.closingHour}
+                                onChange={(e) => handleChangeNewStaffHour(day, 'endHour', e.target.value)}
+                                className="px-2 py-1 rounded-lg border border-slate-200 bg-white text-xs font-bold text-brand-carbon focus:outline-none focus:border-brand-purple cursor-pointer shadow-2xs"
+                              >
+                                {validEndOptions.map(t => (
+                                  <option key={t} value={t}>{t}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {duration > 0 && (
+                              <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md">
+                                {duration % 1 === 0 ? duration : duration.toFixed(1)}h
+                              </span>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => handleCopyNewStaffScheduleToAll(day)}
+                              title={`Copiar horario de ${day} a todos los días`}
+                              className="p-1 rounded-md text-slate-400 hover:text-brand-purple hover:bg-slate-100 transition-colors"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-slate-400 italic">
+                            {!isStoreOpen ? 'La tienda no abre este día' : 'Día libre asignado'}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
