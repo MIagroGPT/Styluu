@@ -23,7 +23,8 @@ import {
   Trash2,
   RotateCcw,
   CheckCircle2,
-  BadgeCheck
+  BadgeCheck,
+  Users
 } from 'lucide-react';
 
 export const MultiStaffCalendar = ({ onOpenNewAppointment, onSelectAppointment }) => {
@@ -33,6 +34,8 @@ export const MultiStaffCalendar = ({ onOpenNewAppointment, onSelectAppointment }
     salesTransactions = [],
     payrollSettlements = [],
     staffMembers, 
+    activeVenue,
+    setBusinessTab,
     formatMoney, 
     currentCurrency,
     getStoreTimeSlots,
@@ -467,12 +470,38 @@ export const MultiStaffCalendar = ({ onOpenNewAppointment, onSelectAppointment }
               </button>
             </div>
           </div>
+        ) : visibleStaff.length === 0 ? (
+          <div className="flex-1 p-12 flex flex-col items-center justify-center text-center space-y-4 bg-slate-50/50 min-h-[450px]">
+            <div className="w-16 h-16 rounded-3xl bg-brand-purple/10 text-brand-purple flex items-center justify-center shadow-xs">
+              <Users className="w-8 h-8" />
+            </div>
+            <div className="max-w-md space-y-1">
+              <h3 className="font-display font-black text-lg text-brand-carbon">
+                Sin Especialistas en {activeVenue?.name || 'este negocio'}
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Este establecimiento no tiene profesionales registrados en su equipo aún. Registra a tus colaboradores para visualizar sus columnas en la agenda.
+              </p>
+            </div>
+            {setBusinessTab && (
+              <button
+                onClick={() => setBusinessTab('team')}
+                className="px-4 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple-dark text-white text-xs font-bold shadow-brand-sm transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Gestionar Equipo de Especialistas</span>
+              </button>
+            )}
+          </div>
         ) : (
           <div className="flex-1 overflow-auto bg-slate-50/30">
             <div className="min-w-[920px] relative">
               
               {/* Header Row: Staff Column Headers */}
-              <div className="sticky top-0 z-10 bg-white border-b border-slate-200 grid grid-cols-[80px_repeat(5,1fr)] shadow-xs">
+              <div 
+                className="sticky top-0 z-10 bg-white border-b border-slate-200 grid shadow-xs"
+                style={{ gridTemplateColumns: `80px repeat(${visibleStaff.length}, minmax(180px, 1fr))` }}
+              >
               {/* Time empty corner */}
               <div className="p-3.5 border-r border-slate-200 text-center font-mono text-xs font-bold text-slate-400 bg-slate-50/80">
                 GMT-4
@@ -575,7 +604,11 @@ export const MultiStaffCalendar = ({ onOpenNewAppointment, onSelectAppointment }
               )}
 
               {timeSlots.map((time) => (
-                <div key={time} className="grid grid-cols-[80px_repeat(5,1fr)] h-[60px] group">
+                <div 
+                  key={time} 
+                  className="grid h-[60px] group"
+                  style={{ gridTemplateColumns: `80px repeat(${visibleStaff.length}, minmax(180px, 1fr))` }}
+                >
                   
                   {/* Time Label */}
                   <div className="p-2 border-r border-slate-200 text-center font-mono text-xs text-slate-400 font-medium bg-slate-50/40 select-none flex items-center justify-center">

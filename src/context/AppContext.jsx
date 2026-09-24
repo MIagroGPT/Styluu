@@ -19,6 +19,23 @@ import {
   productsApi,
 } from '../lib/api';
 
+export const resolveStaffVenueId = (staff) => {
+  if (staff?.venueId) return staff.venueId;
+  if (staff?.venue_id) return staff.venue_id;
+  if (staff?.id === 'staff-1' || staff?.id === 'staff-5') return 'venue-1';
+  if (staff?.id === 'staff-2') return 'venue-2';
+  if (staff?.id === 'staff-3') return 'venue-3';
+  if (staff?.id === 'staff-4') return 'venue-4';
+
+  const text = `${staff?.name || ''} ${staff?.role || ''} ${(staff?.specialties || []).join(' ')}`.toLowerCase();
+  if (text.includes('uña') || text.includes('nail') || text.includes('manicur')) return 'venue-4';
+  if (text.includes('spa') || text.includes('facial') || text.includes('masaj') || text.includes('wellness')) return 'venue-3';
+  if (text.includes('color') || text.includes('balayage') || text.includes('peluquer') || text.includes('salon')) return 'venue-2';
+  if (text.includes('barber') || text.includes('barba') || text.includes('fade')) return 'venue-1';
+
+  return 'venue-1';
+};
+
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
@@ -96,7 +113,7 @@ export const AppProvider = ({ children }) => {
 
   // ── DB-synced data (initialized with mockData fallback to prevent undefined errors on first render) ──
   const [venues, setVenues] = useState(VENUES);
-  const [staffMembers, setStaffMembers] = useState(STAFF_MEMBERS);
+  const [allStaffMembers, setAllStaffMembers] = useState(() => STAFF_MEMBERS.map(s => ({ ...s, venueId: resolveStaffVenueId(s) })));
   const [calendarAppointments, setCalendarAppointments] = useState(INITIAL_CALENDAR_APPOINTMENTS);
   const [clientBookings, setClientBookings] = useState([]);
   const [clientsCRM, setClientsCRM] = useState(INITIAL_CLIENTS_CRM);
@@ -174,9 +191,12 @@ export const AppProvider = ({ children }) => {
         if (!staffData.length) {
           await staffApi.bulkInsert(STAFF_MEMBERS);
           const freshStaff = await staffApi.list();
-          setStaffMembers(Array.isArray(freshStaff) && freshStaff.length ? freshStaff : STAFF_MEMBERS);
+          const mapped = (Array.isArray(freshStaff) && freshStaff.length ? freshStaff : STAFF_MEMBERS)
+            .map(s => ({ ...s, venueId: resolveStaffVenueId(s) }));
+          setAllStaffMembers(mapped);
         } else {
-          setStaffMembers(Array.isArray(staffData) ? staffData : STAFF_MEMBERS);
+          const mapped = staffData.map(s => ({ ...s, venueId: resolveStaffVenueId(s) }));
+          setAllStaffMembers(mapped);
         }
 
         if (!aptsData.length) {
@@ -217,7 +237,7 @@ export const AppProvider = ({ children }) => {
           setDbError(err.message);
           // Fallback to demo data so the app still works offline
           setVenues(VENUES);
-          setStaffMembers(STAFF_MEMBERS);
+          setAllStaffMembers(STAFF_MEMBERS.map(s => ({ ...s, venueId: resolveStaffVenueId(s) })));
           setCalendarAppointments(INITIAL_CALENDAR_APPOINTMENTS);
           setClientsCRM(INITIAL_CLIENTS_CRM);
           setProducts(INITIAL_RETAIL_PRODUCTS);
@@ -241,19 +261,39 @@ export const AppProvider = ({ children }) => {
   // ═══════════════════════════════════════════════════════════════════════════
   //  STAFF ACTIONS
   // ═══════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  ACTIVE VENUE & STAFF ACTIONS (Multi-Venue Segregation)
+  // ═══════════════════════════════════════════════════════════════════════════
+  const activeVenue = (venues && venues.find(v => v.id === activeVenueId)) || (venues && venues[0]) || VENUES[0];
+
+  // Derived staff for the currently active venue
+  const staffMembers = useMemo(() => {
+    const currentVenueId = activeVenue?.id || activeVenueId || 'venue-1';
+    return allStaffMembers.filter(s => resolveStaffVenueId(s) === currentVenueId);
+  }, [allStaffMembers, activeVenue, activeVenueId]);
+
+  // Query staff for any specific venue (e.g. for customer detail views or booking modals)
+  const getVenueStaff = useCallback((venueId) => {
+    const targetId = venueId || activeVenue?.id || activeVenueId || 'venue-1';
+    return allStaffMembers.filter(s => resolveStaffVenueId(s) === targetId);
+  }, [allStaffMembers, activeVenue, activeVenueId]);
+
   const updateStaffCommission = useCallback(async (staffId, newRate) => {
     const rateNum = Math.min(100, Math.max(0, Math.round(Number(newRate) || 0)));
-    const member = staffMembers.find(s => s.id === staffId);
+    const member = allStaffMembers.find(s => s.id === staffId);
     if (!member) return;
     try {
       const updated = await staffApi.update(staffId, { ...member, commissionRate: rateNum });
-      setStaffMembers(prev => prev.map(s => s.id === staffId ? updated : s));
+      const withVenue = { ...updated, venueId: updated.venueId || member.venueId };
+      setAllStaffMembers(prev => prev.map(s => s.id === staffId ? withVenue : s));
       showToast(`Comisión actualizada a ${rateNum}% para el especialista`, 'success');
     } catch (err) { showToast('Error al actualizar comisión', 'error'); }
-  }, [staffMembers]);
+  }, [allStaffMembers]);
 
   const addStaffMember = useCallback(async (staffData) => {
+    const targetVenueId = staffData.venueId || activeVenue?.id || activeVenueId || 'venue-1';
     const newStaff = {
+      venueId: targetVenueId,
       name: staffData.name || 'Nuevo Especialista',
       role: staffData.role || 'Master Barber & Stylist',
       rating: 5.0, reviewsCount: 0,
@@ -273,14 +313,15 @@ export const AppProvider = ({ children }) => {
     };
     try {
       const created = await staffApi.create(newStaff);
-      setStaffMembers(prev => [...prev, created]);
+      const withVenue = { ...created, venueId: created.venueId || targetVenueId };
+      setAllStaffMembers(prev => [...prev, withVenue]);
       showToast(`¡Especialista ${created.name} añadido exitosamente al equipo!`, 'success');
-      return created;
+      return withVenue;
     } catch (err) { showToast('Error al añadir especialista', 'error'); }
-  }, []);
+  }, [activeVenue, activeVenueId]);
 
   const updateStaffMember = useCallback(async (staffId, updatedData) => {
-    const member = staffMembers.find(s => s.id === staffId);
+    const member = allStaffMembers.find(s => s.id === staffId);
     if (!member) return;
     const merged = { ...member, ...updatedData };
     if (updatedData.assignedServices) {
@@ -292,18 +333,19 @@ export const AppProvider = ({ children }) => {
     }
     try {
       const updated = await staffApi.update(staffId, merged);
-      setStaffMembers(prev => prev.map(s => s.id === staffId ? updated : s));
+      const withVenue = { ...updated, venueId: updated.venueId || member.venueId };
+      setAllStaffMembers(prev => prev.map(s => s.id === staffId ? withVenue : s));
       showToast('Especialista actualizado con éxito', 'success');
-      return updated;
+      return withVenue;
     } catch (err) {
-      setStaffMembers(prev => prev.map(s => s.id === staffId ? merged : s));
+      setAllStaffMembers(prev => prev.map(s => s.id === staffId ? merged : s));
       showToast('Especialista actualizado', 'info');
       return merged;
     }
-  }, [staffMembers]);
+  }, [allStaffMembers]);
 
   const updateStaffSchedule = useCallback(async (staffId, scheduleData) => {
-    const member = staffMembers.find(s => s.id === staffId);
+    const member = allStaffMembers.find(s => s.id === staffId);
     if (!member) return;
     const existingAssigned = member.assignedServices || member.schedule?.assignedServices || [];
     const updatedSchedule = { 
@@ -313,23 +355,19 @@ export const AppProvider = ({ children }) => {
     };
     try {
       const updated = await staffApi.update(staffId, { ...member, schedule: updatedSchedule });
-      setStaffMembers(prev => prev.map(s => s.id === staffId ? updated : s));
+      const withVenue = { ...updated, venueId: updated.venueId || member.venueId };
+      setAllStaffMembers(prev => prev.map(s => s.id === staffId ? withVenue : s));
       showToast('Horario de trabajo actualizado correctamente', 'success');
     } catch (err) { showToast('Error al actualizar horario', 'error'); }
-  }, [staffMembers]);
+  }, [allStaffMembers]);
 
   const deleteStaffMember = useCallback(async (staffId) => {
     try {
       await staffApi.remove(staffId);
-      setStaffMembers(prev => prev.filter(s => s.id !== staffId));
+      setAllStaffMembers(prev => prev.filter(s => s.id !== staffId));
       showToast('Especialista eliminado del equipo', 'info');
     } catch (err) { showToast('Error al eliminar especialista', 'error'); }
   }, []);
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  VENUE HELPERS (pure computation — no DB calls needed for these)
-  // ═══════════════════════════════════════════════════════════════════════════
-  const activeVenue = (venues && venues.find(v => v.id === activeVenueId)) || (venues && venues[0]) || VENUES[0];
 
   const getVenueOperatingHours = (v = activeVenue, specificDayOrDate = null) => {
     const rawDaily = v?.dailySchedule || {};
@@ -936,8 +974,16 @@ export const AppProvider = ({ children }) => {
       getVenueOperatingHours, getStoreTimeSlots, updateVenueOperatingHours, updateVenueServices,
       storeOperatingHours,
       // Staff
-      staffMembers, setStaffMembers,
-      updateStaffCommission, addStaffMember, updateStaffSchedule, deleteStaffMember,
+      staffMembers,
+      allStaffMembers,
+      getVenueStaff,
+      setStaffMembers: setAllStaffMembers,
+      setAllStaffMembers,
+      updateStaffCommission,
+      addStaffMember,
+      updateStaffMember,
+      updateStaffSchedule,
+      deleteStaffMember,
       // Appointments
       calendarAppointments, setCalendarAppointments,
       updateAppointmentStatus, clearCalendarAppointments, resetCalendarAppointments,

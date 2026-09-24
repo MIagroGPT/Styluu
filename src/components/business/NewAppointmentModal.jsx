@@ -19,6 +19,7 @@ import {
 export const NewAppointmentModal = ({ initialData, isOpen, onClose }) => {
   const { 
     staffMembers = [], 
+    activeVenue,
     venues = [], 
     createManualAppointment,
     showToast, 
@@ -32,8 +33,9 @@ export const NewAppointmentModal = ({ initialData, isOpen, onClose }) => {
   };
 
   // Extract catalog of services from venue or fallback
-  const catalogServices = (venues && venues[0]?.services && venues[0].services.length > 0)
-    ? venues[0].services
+  const currentVenue = activeVenue || venues?.[0];
+  const catalogServices = (currentVenue?.services && currentVenue.services.length > 0)
+    ? currentVenue.services
     : [
         { id: 'srv-1', name: 'Corte de Cabello Signature', price: 45, duration: 40, category: 'Cabello' },
         { id: 'srv-2', name: 'Diseño y Perfilado de Barba', price: 30, duration: 30, category: 'Barba' },
@@ -136,6 +138,7 @@ export const NewAppointmentModal = ({ initialData, isOpen, onClose }) => {
 
     const newApt = {
       id: `apt-manual-${Date.now()}`,
+      venueId: activeVenue?.id || 'venue-1',
       staffId: selectedStaffId,
       clientName: clientName.trim() || 'Cliente Walk-in',
       clientPhone: clientPhone.trim(),

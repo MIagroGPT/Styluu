@@ -54,14 +54,14 @@ app.get('/api/setup', async (_req, res) => {
         created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
       );
       CREATE TABLE IF NOT EXISTS staff_members (
-        id TEXT PRIMARY KEY, name TEXT NOT NULL, role TEXT,
+        id TEXT PRIMARY KEY, venue_id TEXT DEFAULT 'venue-1', name TEXT NOT NULL, role TEXT,
         rating NUMERIC(3,1) DEFAULT 5.0, reviews_count INTEGER DEFAULT 0,
         avatar TEXT, color TEXT DEFAULT '#6045F4', commission_rate INTEGER DEFAULT 50,
         specialties JSONB DEFAULT '[]', schedule JSONB DEFAULT '{}',
         created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
       );
       CREATE TABLE IF NOT EXISTS calendar_appointments (
-        id TEXT PRIMARY KEY, booking_id TEXT, staff_id TEXT,
+        id TEXT PRIMARY KEY, venue_id TEXT DEFAULT 'venue-1', booking_id TEXT, staff_id TEXT,
         client_name TEXT, client_phone TEXT, client_email TEXT,
         service_name TEXT, service_category TEXT DEFAULT 'General',
         price NUMERIC(10,2) DEFAULT 0, start_time TEXT, end_time TEXT,
@@ -116,6 +116,14 @@ app.get('/api/setup', async (_req, res) => {
       CREATE INDEX IF NOT EXISTS idx_client_bookings_email ON client_bookings(client_email);
       CREATE INDEX IF NOT EXISTS idx_clients_crm_email ON clients_crm(email);
       CREATE INDEX IF NOT EXISTS idx_sales_date ON sales_transactions(date);
+
+      ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS venue_id TEXT;
+      ALTER TABLE calendar_appointments ADD COLUMN IF NOT EXISTS venue_id TEXT;
+      UPDATE staff_members SET venue_id = 'venue-1' WHERE venue_id IS NULL AND (id IN ('staff-1', 'staff-5') OR role ILIKE '%barber%' OR name ILIKE '%alejandro%' OR name ILIKE '%emanuel%');
+      UPDATE staff_members SET venue_id = 'venue-2' WHERE venue_id IS NULL AND (id = 'staff-2' OR role ILIKE '%color%' OR role ILIKE '%hair%' OR role ILIKE '%peluquer%');
+      UPDATE staff_members SET venue_id = 'venue-3' WHERE venue_id IS NULL AND (id = 'staff-3' OR role ILIKE '%spa%' OR role ILIKE '%aesthetic%' OR role ILIKE '%masaj%');
+      UPDATE staff_members SET venue_id = 'venue-4' WHERE venue_id IS NULL AND (id = 'staff-4' OR role ILIKE '%nail%' OR role ILIKE '%uña%' OR name ILIKE '%ALEJANDRA%');
+      UPDATE staff_members SET venue_id = 'venue-1' WHERE venue_id IS NULL;
     `);
     res.json({ status: 'ok', message: '✅ Todas las tablas creadas exitosamente', tables: ['venues','staff_members','calendar_appointments','client_bookings','clients_crm','sales_transactions','payroll_settlements','retail_products'] });
   } catch (err) {
@@ -223,9 +231,14 @@ function mapVenueOut(r) {
 // ═══════════════════════════════════════════════════════════════════════════
 //  STAFF MEMBERS
 // ═══════════════════════════════════════════════════════════════════════════
-app.get('/api/staff', async (_req, res) => {
+app.get('/api/staff', async (req, res) => {
   try {
-    const { rows } = await db('SELECT * FROM staff_members ORDER BY created_at');
+    const { venueId } = req.query;
+    const query = venueId
+      ? 'SELECT * FROM staff_members WHERE venue_id=$1 ORDER BY created_at'
+      : 'SELECT * FROM staff_members ORDER BY created_at';
+    const params = venueId ? [venueId] : [];
+    const { rows } = await db(query, params);
     res.json(rows.map(mapStaffOut));
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -233,13 +246,14 @@ app.get('/api/staff', async (_req, res) => {
 app.post('/api/staff', async (req, res) => {
   const s = req.body;
   const id = s.id || uid('staff');
+  const venueId = s.venueId || s.venue_id || 'venue-1';
   try {
     const { rows } = await db(`
-      INSERT INTO staff_members (id, name, role, rating, reviews_count, avatar, color, commission_rate, specialties, schedule)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+      INSERT INTO staff_members (id, venue_id, name, role, rating, reviews_count, avatar, color, commission_rate, specialties, schedule)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
       RETURNING *
     `, [
-      id, s.name, s.role, s.rating ?? 5.0, s.reviewsCount ?? 0,
+      id, venueId, s.name, s.role, s.rating ?? 5.0, s.reviewsCount ?? 0,
       s.avatar, s.color ?? '#6045F4', s.commissionRate ?? 50,
       JSON.stringify(s.specialties ?? []),
       JSON.stringify(s.schedule ?? { startHour: '09:00', endHour: '19:00', workDays: ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'] })
@@ -250,14 +264,16 @@ app.post('/api/staff', async (req, res) => {
 
 app.put('/api/staff/:id', async (req, res) => {
   const s = req.body;
+  const venueId = s.venueId || s.venue_id;
   try {
     const { rows } = await db(`
       UPDATE staff_members SET
-        name=$2, role=$3, rating=$4, reviews_count=$5, avatar=$6,
-        color=$7, commission_rate=$8, specialties=$9, schedule=$10, updated_at=NOW()
+        venue_id=COALESCE($2, venue_id),
+        name=$3, role=$4, rating=$5, reviews_count=$6, avatar=$7,
+        color=$8, commission_rate=$9, specialties=$10, schedule=$11, updated_at=NOW()
       WHERE id=$1 RETURNING *
     `, [
-      req.params.id, s.name, s.role, s.rating ?? 5.0, s.reviewsCount ?? 0,
+      req.params.id, venueId, s.name, s.role, s.rating ?? 5.0, s.reviewsCount ?? 0,
       s.avatar, s.color ?? '#6045F4', s.commissionRate ?? 50,
       JSON.stringify(s.specialties ?? []),
       JSON.stringify(s.schedule ?? {})
@@ -282,11 +298,12 @@ app.post('/api/staff/bulk', async (req, res) => {
     let count = 0;
     for (const s of staff) {
       await db(`
-        INSERT INTO staff_members (id, name, role, rating, reviews_count, avatar, color, commission_rate, specialties, schedule)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-        ON CONFLICT (id) DO NOTHING
+        INSERT INTO staff_members (id, venue_id, name, role, rating, reviews_count, avatar, color, commission_rate, specialties, schedule)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        ON CONFLICT (id) DO UPDATE SET
+          venue_id = COALESCE(EXCLUDED.venue_id, staff_members.venue_id)
       `, [
-        s.id || uid('staff'), s.name, s.role, s.rating ?? 5.0, s.reviewsCount ?? 0,
+        s.id || uid('staff'), s.venueId || s.venue_id || 'venue-1', s.name, s.role, s.rating ?? 5.0, s.reviewsCount ?? 0,
         s.avatar, s.color ?? '#6045F4', s.commissionRate ?? 50,
         JSON.stringify(s.specialties ?? []),
         JSON.stringify(s.schedule ?? {})
@@ -299,11 +316,20 @@ app.post('/api/staff/bulk', async (req, res) => {
 
 function mapStaffOut(r) {
   return {
-    id: r.id, name: r.name, role: r.role, rating: Number(r.rating),
-    reviewsCount: r.reviews_count, avatar: r.avatar, color: r.color,
-    commissionRate: r.commission_rate, specialties: r.specialties,
+    id: r.id,
+    venueId: r.venue_id || 'venue-1',
+    name: r.name,
+    role: r.role,
+    rating: Number(r.rating),
+    reviewsCount: r.reviews_count,
+    avatar: r.avatar,
+    color: r.color,
+    commissionRate: r.commission_rate,
+    specialties: r.specialties,
     assignedServices: (r.schedule && Array.isArray(r.schedule.assignedServices)) ? r.schedule.assignedServices : [],
-    schedule: r.schedule, createdAt: r.created_at, updatedAt: r.updated_at,
+    schedule: r.schedule,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
   };
 }
 
@@ -736,8 +762,27 @@ function mapProductOut(r) {
 // ─── 404 fallback ───────────────────────────────────────────────────────────
 app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));
 
+// ─── Automatic Database Migrations ──────────────────────────────────────────
+async function runStartupMigrations() {
+  try {
+    await db(`
+      ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS venue_id TEXT;
+      ALTER TABLE calendar_appointments ADD COLUMN IF NOT EXISTS venue_id TEXT;
+      UPDATE staff_members SET venue_id = 'venue-1' WHERE venue_id IS NULL AND (id IN ('staff-1', 'staff-5') OR role ILIKE '%barber%' OR name ILIKE '%alejandro%' OR name ILIKE '%emanuel%');
+      UPDATE staff_members SET venue_id = 'venue-2' WHERE venue_id IS NULL AND (id = 'staff-2' OR role ILIKE '%color%' OR role ILIKE '%hair%' OR role ILIKE '%peluquer%');
+      UPDATE staff_members SET venue_id = 'venue-3' WHERE venue_id IS NULL AND (id = 'staff-3' OR role ILIKE '%spa%' OR role ILIKE '%aesthetic%' OR role ILIKE '%masaj%');
+      UPDATE staff_members SET venue_id = 'venue-4' WHERE venue_id IS NULL AND (id = 'staff-4' OR role ILIKE '%nail%' OR role ILIKE '%uña%' OR name ILIKE '%ALEJANDRA%');
+      UPDATE staff_members SET venue_id = 'venue-1' WHERE venue_id IS NULL;
+    `);
+    console.log('✅ Auto-migrations completed: staff_members venue_id linked.');
+  } catch (err) {
+    console.warn('⚠️ Auto-migration note:', err.message);
+  }
+}
+
 // ─── Start Server ───────────────────────────────────────────────────────────
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`✅ Styluu API running on port ${PORT}`);
   console.log(`   DB: ${process.env.DATABASE_URL ? 'Connected' : '⚠️  DATABASE_URL not set'}`);
+  await runStartupMigrations();
 });

@@ -65,12 +65,13 @@ export const StaffManager = () => {
     deleteStaffMember, 
     setBusinessTab, 
     getVenueOperatingHours,
+    activeVenue,
     venues,
     formatMoney,
     showToast 
   } = useApp();
 
-  const venueServices = venues?.[0]?.services || [];
+  const venueServices = activeVenue?.services || venues?.[0]?.services || [];
 
   // Distinct service categories from venue
   const serviceCategories = useMemo(() => {
@@ -522,6 +523,7 @@ export const StaffManager = () => {
 
     addStaffMember({
       name: newStaffName.trim(),
+      venueId: activeVenue?.id || 'venue-1',
       role: newStaffRole.trim(),
       avatar: newStaffAvatar,
       color: newStaffColor,
@@ -592,9 +594,29 @@ export const StaffManager = () => {
         </div>
       </div>
 
-      {/* Staff Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {staffMembers.map((staff) => {
+      {/* Staff Grid or Empty State */}
+      {staffMembers.length === 0 ? (
+        <div className="p-12 text-center bg-white rounded-3xl border border-slate-200 shadow-sm space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-brand-purple/10 text-brand-purple flex items-center justify-center mx-auto">
+            <Users className="w-7 h-7" />
+          </div>
+          <div>
+            <h3 className="font-bold text-lg text-brand-carbon">No hay especialistas registrados en este negocio</h3>
+            <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+              Añade el primer profesional del equipo de {activeVenue?.name || 'este establecimiento'} para habilitar su agenda y comenzar a recibir citas.
+            </p>
+          </div>
+          <button
+            onClick={handleOpenAddStaffModal}
+            className="px-5 py-2.5 rounded-xl bg-brand-purple hover:bg-brand-purple-dark text-white text-xs font-bold shadow-brand-sm transition-all inline-flex items-center gap-2 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Añadir Primer Especialista</span>
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {staffMembers.map((staff) => {
           const isEditing = editingStaffId === staff.id;
           const currentRate = typeof staff.commissionRate === 'number' ? staff.commissionRate : 50;
           const schedule = staff.schedule || {
@@ -801,6 +823,7 @@ export const StaffManager = () => {
           );
         })}
       </div>
+      )}
 
       {/* ========================================================================= */}
       {/* MODAL 1: EDITAR HORARIO DEL ESPECIALISTA (DÍA A DÍA ACOTADO AL SALÓN)    */}

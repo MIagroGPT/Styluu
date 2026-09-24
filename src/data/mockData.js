@@ -96,6 +96,7 @@ export const CATEGORIES = [
 export const STAFF_MEMBERS = [
   {
     id: 'staff-1',
+    venueId: 'venue-1',
     name: 'John Templeton',
     role: 'Master Barber & Stylist',
     rating: 4.9,
@@ -107,6 +108,7 @@ export const STAFF_MEMBERS = [
   },
   {
     id: 'staff-2',
+    venueId: 'venue-2',
     name: 'Maria Santos',
     role: 'Senior Hair Colorist',
     rating: 5.0,
@@ -118,6 +120,7 @@ export const STAFF_MEMBERS = [
   },
   {
     id: 'staff-3',
+    venueId: 'venue-3',
     name: 'Wendy Lin',
     role: 'Aesthetician & Spa Director',
     rating: 4.9,
@@ -129,6 +132,7 @@ export const STAFF_MEMBERS = [
   },
   {
     id: 'staff-4',
+    venueId: 'venue-4',
     name: 'Amy Jones',
     role: 'Nail Artist & Brow Expert',
     rating: 4.8,
@@ -140,6 +144,7 @@ export const STAFF_MEMBERS = [
   },
   {
     id: 'staff-5',
+    venueId: 'venue-1',
     name: 'Michael Vance',
     role: 'Barber & Grooming Specialist',
     rating: 4.9,

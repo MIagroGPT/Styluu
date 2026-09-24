@@ -15,9 +15,9 @@ const BASE_SERVICE_CATEGORIES = [
 ];
 
 export const ServicesManager = () => {
-  const { venues, updateVenueServices, showToast, formatMoney, currentCurrency } = useApp();
-  const activeVenue = venues[0] || {};
-  const [services, setServices] = useState(activeVenue?.services || []);
+  const { venues, activeVenue, updateVenueServices, showToast, formatMoney, currentCurrency } = useApp();
+  const currentVenue = activeVenue || venues?.[0] || {};
+  const [services, setServices] = useState(currentVenue?.services || []);
   const [isAdding, setIsAdding] = useState(false);
   const [editingService, setEditingService] = useState(null);
   const [activeCategoryFilter, setActiveCategoryFilter] = useState('Todas');

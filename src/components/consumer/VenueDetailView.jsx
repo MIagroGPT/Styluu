@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useApp } from '../../context/AppContext';
 import { 
@@ -21,8 +21,12 @@ import {
 
 export const VenueDetailView = () => {
   const { language, t } = useLanguage();
-  const { selectedVenue, setCurrentView, openBookingModal, staffMembers, products, addToCart, formatMoney } = useApp();
+  const { selectedVenue, setCurrentView, openBookingModal, getVenueStaff, staffMembers, products, addToCart, formatMoney } = useApp();
   
+  const venueStaff = useMemo(() => {
+    return getVenueStaff ? getVenueStaff(selectedVenue?.id) : staffMembers;
+  }, [getVenueStaff, selectedVenue?.id, staffMembers]);
+
   const [activeMainTab, setActiveMainTab] = useState('services'); // 'services' | 'products'
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedServices, setSelectedServices] = useState([]);
@@ -157,7 +161,7 @@ export const VenueDetailView = () => {
                 Equipo de Especialistas
               </h3>
               <div className="flex gap-4 overflow-x-auto pb-3">
-                {staffMembers.map((staff) => (
+                {venueStaff.map((staff) => (
                   <div 
                     key={staff.id} 
                     className="flex-shrink-0 flex items-center gap-3 p-3 rounded-2xl border border-slate-200 bg-white hover:border-brand-purple/40 transition-all cursor-pointer shadow-2xs"

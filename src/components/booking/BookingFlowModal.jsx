@@ -24,6 +24,8 @@ export const BookingFlowModal = () => {
     isBookingModalOpen, 
     closeBookingModal, 
     bookingVenue, 
+    selectedVenue,
+    getVenueStaff,
     staffMembers, 
     addAppointment,
     confirmedBookingData,
@@ -59,11 +61,16 @@ export const BookingFlowModal = () => {
   const [clientEmail, setClientEmail] = useState('diego.ramirez@mail.com');
   const [paymentMethod, setPaymentMethod] = useState('venue'); // 'venue' | 'online'
 
+  const targetVenueId = bookingVenue?.id || selectedVenue?.id;
+  const currentVenueStaff = useMemo(() => {
+    return getVenueStaff ? getVenueStaff(targetVenueId) : staffMembers;
+  }, [getVenueStaff, targetVenueId, staffMembers]);
+
   // Filter staff members who are authorized to perform ALL selected services
   const eligibleStaff = useMemo(() => {
-    if (!selectedServices || selectedServices.length === 0) return staffMembers;
+    if (!selectedServices || selectedServices.length === 0) return currentVenueStaff;
 
-    return staffMembers.filter(staff => {
+    return currentVenueStaff.filter(staff => {
       const assigned = staff.assignedServices || staff.schedule?.assignedServices;
       // If staff has configured assigned services
       if (Array.isArray(assigned) && assigned.length > 0) {
@@ -89,7 +96,7 @@ export const BookingFlowModal = () => {
 
       return true;
     });
-  }, [staffMembers, selectedServices]);
+  }, [currentVenueStaff, selectedServices]);
 
   // Reset selected staff if not in eligible list
   useEffect(() => {
@@ -132,7 +139,7 @@ export const BookingFlowModal = () => {
 
   const handleConfirmBooking = () => {
     // If "Cualquier Profesional" was picked, assign one from eligibleStaff
-    const finalStaff = selectedStaff || eligibleStaff[0] || staffMembers[0];
+    const finalStaff = selectedStaff || eligibleStaff[0] || currentVenueStaff[0];
 
     addAppointment({
       venue: bookingVenue,
