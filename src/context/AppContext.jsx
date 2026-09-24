@@ -23,15 +23,31 @@ const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   // ── UI State (still local — no need to sync across devices) ─────────────
-  const [currentView, setCurrentView] = useState(() => {
+  const getViewFromUrl = () => {
     try {
+      const path = (window.location.pathname || '').toLowerCase();
+      const hash = (window.location.hash || '').toLowerCase();
+      if (path.includes('/admin') || path.includes('/maestro') || path.includes('/super-admin') || hash.includes('admin') || hash.includes('maestro')) {
+        return 'super-admin';
+      }
+      if (path.includes('/business') || path.includes('/pro') || hash.includes('business')) {
+        return 'business-os';
+      }
+      if (path.includes('/mis-citas') || path.includes('/bookings') || hash.includes('citas')) {
+        return 'my-bookings';
+      }
+      if (path.includes('/explore') || hash.includes('explore')) {
+        return 'explore';
+      }
       const saved = localStorage.getItem('styluu_view');
       const valid = ['landing', 'explore', 'venue-detail', 'my-bookings', 'business-os', 'super-admin'];
       return valid.includes(saved) ? saved : 'landing';
     } catch {
       return 'landing';
     }
-  });
+  };
+
+  const [currentView, setCurrentView] = useState(() => getViewFromUrl());
   const [businessTab, setBusinessTab] = useState(() => {
     try {
       const savedTab = localStorage.getItem('styluu_business_tab');
@@ -92,10 +108,31 @@ export const AppProvider = ({ children }) => {
   const [dbReady, setDbReady] = useState(false);
   const [dbError, setDbError] = useState(null);
 
-  // Persist view so page reload returns to the same section
+  // Persist view so page reload returns to the same section, and sync with browser URL
   useEffect(() => {
-    try { localStorage.setItem('styluu_view', currentView); } catch {}
+    try {
+      localStorage.setItem('styluu_view', currentView);
+      const urlMap = {
+        'super-admin': '/admin',
+        'business-os': '/business',
+        'my-bookings': '/mis-citas',
+        'explore': '/explore',
+        'landing': '/'
+      };
+      const targetPath = urlMap[currentView];
+      if (targetPath && window.location.pathname !== targetPath) {
+        window.history.pushState({ view: currentView }, '', targetPath);
+      }
+    } catch {}
   }, [currentView]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentView(getViewFromUrl());
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // ── Initial data load from DB ─────────────────────────────────────────────
   useEffect(() => {

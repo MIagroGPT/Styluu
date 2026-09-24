@@ -22,7 +22,10 @@ import {
   X,
   Phone,
   Mail,
-  Building2
+  Building2,
+  KeyRound,
+  Lock,
+  LogOut
 } from 'lucide-react';
 
 const CATEGORY_LABELS = {
@@ -43,6 +46,7 @@ const SAMPLE_COVERS = [
 export const SuperAdminDashboard = () => {
   const {
     venues,
+    activeVenue,
     clientsCRM,
     calendarAppointments,
     clientBookings,
@@ -55,6 +59,41 @@ export const SuperAdminDashboard = () => {
     deleteVenue,
     showToast
   } = useApp();
+
+  // Master Access Authentication Gate
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    try {
+      return sessionStorage.getItem('styluu_master_auth') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState(false);
+
+  const handleLoginSubmit = (e) => {
+    e.preventDefault();
+    if (pinInput === 'Styluu2026!' || pinInput === 'admin2026' || pinInput === '2026') {
+      try {
+        sessionStorage.setItem('styluu_master_auth', 'true');
+      } catch {}
+      setIsAuthenticated(true);
+      setPinError(false);
+      showToast('Acceso Maestro verificado', 'success');
+    } else {
+      setPinError(true);
+      showToast('Clave maestra incorrecta', 'error');
+    }
+  };
+
+  const handleLogout = () => {
+    try {
+      sessionStorage.removeItem('styluu_master_auth');
+    } catch {}
+    setIsAuthenticated(false);
+    setPinInput('');
+    showToast('Sesión maestra cerrada', 'info');
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -139,6 +178,82 @@ export const SuperAdminDashboard = () => {
     setEmail('');
   };
 
+  // Master Access Gate Screen
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 selection:bg-brand-purple selection:text-white">
+        <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-8 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+          {/* Ambient background glow */}
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-purple/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-brand-mint/15 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="text-center space-y-3 mb-8 relative">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-purple to-brand-mint flex items-center justify-center mx-auto shadow-xl shadow-brand-purple/25 text-white">
+              <Lock className="w-8 h-8" />
+            </div>
+            <div>
+              <span className="px-2.5 py-0.5 rounded-full bg-brand-purple/20 text-brand-mint border border-brand-mint/30 text-[10px] font-black uppercase tracking-wider">
+                Área Restringida
+              </span>
+              <h1 className="text-2xl font-black text-white tracking-tight mt-2 font-display">
+                Super Admin Maestro
+              </h1>
+              <p className="text-xs text-slate-400 mt-1">
+                Ingresa tu clave maestra de propietario de Styluu para gestionar los establecimientos y métricas globales.
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleLoginSubmit} className="space-y-4 relative">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                Clave de Acceso Maestro
+              </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  value={pinInput}
+                  onChange={(e) => {
+                    setPinInput(e.target.value);
+                    if (pinError) setPinError(false);
+                  }}
+                  placeholder="••••••••••••"
+                  autoFocus
+                  className={`w-full px-4 py-3.5 pl-11 rounded-xl bg-slate-800/90 border ${
+                    pinError ? 'border-red-500/80 focus:ring-red-500' : 'border-slate-700/80 focus:border-brand-mint focus:ring-brand-mint/20'
+                  } text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 transition-all font-mono`}
+                />
+                <KeyRound className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              </div>
+              {pinError && (
+                <p className="text-red-400 text-xs font-medium mt-1.5 flex items-center gap-1">
+                  <span>Clave no válida. Verifica tu credencial de administrador.</span>
+                </p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-brand-purple to-brand-purple-dark hover:brightness-110 text-white font-bold text-sm shadow-brand-md transition-all flex items-center justify-center gap-2 group active:scale-[0.99]"
+            >
+              <span>Desbloquear Consola Maestra</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          </form>
+
+          <div className="mt-6 pt-6 border-t border-slate-800/80 text-center">
+            <button
+              onClick={() => setCurrentView('landing')}
+              className="text-xs text-slate-400 hover:text-slate-200 transition-colors font-medium inline-flex items-center gap-1.5"
+            >
+              <span>← Volver al Marketplace público</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
       
@@ -162,7 +277,7 @@ export const SuperAdminDashboard = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
             <button
               onClick={() => setCurrentView('landing')}
               className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition-colors flex items-center gap-1.5"
@@ -172,9 +287,10 @@ export const SuperAdminDashboard = () => {
             </button>
             <button
               onClick={() => setCurrentView('business-os')}
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition-colors flex items-center gap-1.5"
+              title={`Administrar "${activeVenue?.name || 'Sede activa'}" en Business OS`}
+              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition-colors flex items-center gap-1.5 border border-slate-700/60"
             >
-              <span>Ir a Business OS</span>
+              <span>Ir a Business OS ({activeVenue?.name || 'Sede'})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
             <button
@@ -182,7 +298,14 @@ export const SuperAdminDashboard = () => {
               className="px-4 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple-dark text-xs font-black text-white shadow-brand-sm transition-all flex items-center gap-1.5"
             >
               <Plus className="w-4 h-4" />
-              <span>Registrar Nuevo Negocio</span>
+              <span>Registrar Negocio</span>
+            </button>
+            <button
+              onClick={handleLogout}
+              title="Cerrar Sesión Maestra / Bloquear Acceso"
+              className="p-2 rounded-xl bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors border border-slate-700/60 flex items-center justify-center"
+            >
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
