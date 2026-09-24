@@ -14,7 +14,8 @@ import {
   ChevronDown,
   LayoutDashboard,
   Store,
-  Compass
+  Compass,
+  ShieldCheck
 } from 'lucide-react';
 
 export const Navbar = () => {
@@ -141,6 +142,20 @@ export const Navbar = () => {
               <span>{language.toUpperCase()}</span>
             </button>
 
+            {/* Super Admin Maestro Button */}
+            <button
+              onClick={() => setCurrentView('super-admin')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                currentView === 'super-admin'
+                  ? 'bg-brand-purple text-white shadow-brand-sm'
+                  : 'bg-slate-900 text-brand-mint hover:bg-black border border-brand-mint/30 shadow-2xs'
+              }`}
+              title="Panel Maestro Global (Super Admin Styluu)"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-brand-mint" />
+              <span>Maestro</span>
+            </button>
+
             {/* Switch Mode Button */}
             {currentView === 'business-os' ? (
               <button
@@ -240,6 +255,19 @@ export const Navbar = () => {
             </div>
             <span className="bg-brand-mint text-brand-carbon text-[11px] font-black px-2.5 py-0.5 rounded-md">
               BOOKEA
+            </span>
+          </button>
+
+          <button
+            onClick={() => { setCurrentView('super-admin'); setIsMobileMenuOpen(false); }}
+            className="w-full p-3 rounded-xl bg-slate-900 border border-brand-mint/30 text-white font-bold text-sm flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-brand-mint" />
+              <span>Panel Super Admin Maestro</span>
+            </div>
+            <span className="bg-brand-purple text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+              GLOBAL
             </span>
           </button>
         </div>

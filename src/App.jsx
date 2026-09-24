@@ -12,6 +12,7 @@ import { VenueDetailView } from './components/consumer/VenueDetailView';
 import { BookingFlowModal } from './components/booking/BookingFlowModal';
 import { ClientPortal } from './components/client/ClientPortal';
 import { BusinessOS } from './components/business/BusinessOS';
+import { SuperAdminDashboard } from './components/admin/SuperAdminDashboard';
 import { Sparkles, ArrowRight, ShieldCheck, Check } from 'lucide-react';
 
 class ErrorBoundary extends React.Component {
@@ -68,6 +69,16 @@ class ErrorBoundary extends React.Component {
 
 const MainContent = () => {
   const { currentView } = useApp();
+
+  // If Super Admin Maestro mode is active, render the platform manager
+  if (currentView === 'super-admin') {
+    return (
+      <div className="min-h-screen bg-slate-900 text-slate-100">
+        <SuperAdminDashboard />
+        <NotificationToast />
+      </div>
+    );
+  }
 
   // If Business OS mode is active, render the dedicated SaaS layout
   if (currentView === 'business-os') {

@@ -26,7 +26,7 @@ export const AppProvider = ({ children }) => {
   const [currentView, setCurrentView] = useState(() => {
     try {
       const saved = localStorage.getItem('styluu_view');
-      const valid = ['landing', 'explore', 'venue-detail', 'my-bookings', 'business-os'];
+      const valid = ['landing', 'explore', 'venue-detail', 'my-bookings', 'business-os', 'super-admin'];
       return valid.includes(saved) ? saved : 'landing';
     } catch {
       return 'landing';
@@ -47,6 +47,19 @@ export const AppProvider = ({ children }) => {
   }, [businessTab]);
 
   const [selectedVenue, setSelectedVenue] = useState(VENUES[0]);
+  const [activeVenueId, setActiveVenueId] = useState(() => {
+    try {
+      return localStorage.getItem('styluu_active_venue_id') || 'venue-1';
+    } catch {
+      return 'venue-1';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('styluu_active_venue_id', activeVenueId);
+    } catch {}
+  }, [activeVenueId]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLocation, setSelectedLocation] = useState('');
@@ -279,7 +292,7 @@ export const AppProvider = ({ children }) => {
   // ═══════════════════════════════════════════════════════════════════════════
   //  VENUE HELPERS (pure computation — no DB calls needed for these)
   // ═══════════════════════════════════════════════════════════════════════════
-  const activeVenue = (venues && venues[0]) || VENUES[0];
+  const activeVenue = (venues && venues.find(v => v.id === activeVenueId)) || (venues && venues[0]) || VENUES[0];
 
   const getVenueOperatingHours = (v = activeVenue, specificDayOrDate = null) => {
     const rawDaily = v?.dailySchedule || {};
@@ -417,6 +430,57 @@ export const AppProvider = ({ children }) => {
       return updatedVenueData;
     }
   }, [venues, activeVenue]);
+
+  const createVenue = useCallback(async (venueData) => {
+    const newId = venueData.id || `venue-${Date.now()}`;
+    const newVenue = {
+      id: newId,
+      name: venueData.name || 'Nuevo Establecimiento',
+      tagline: venueData.tagline || 'Salón de Belleza & Cuidado Personal',
+      address: venueData.address || 'Calle Principal #100',
+      city: venueData.city || 'Bogotá, Colombia',
+      category: venueData.category || 'barber',
+      rating: 5.0,
+      reviewsCount: 0,
+      priceRange: venueData.priceRange || '$$',
+      hours: `${venueData.openingHour || '09:00'} - ${venueData.closingHour || '20:00'}`,
+      openingHour: venueData.openingHour || '09:00',
+      closingHour: venueData.closingHour || '20:00',
+      openDays: venueData.openDays || ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'],
+      dailySchedule: venueData.dailySchedule || {},
+      images: Array.isArray(venueData.images) && venueData.images.length ? venueData.images : [
+        venueData.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=900&q=80'
+      ],
+      services: Array.isArray(venueData.services) && venueData.services.length ? venueData.services : [
+        { id: `srv-${Date.now()}-1`, name: 'Servicio Principal', price: 45000, duration: 40, category: 'General', description: 'Servicio inicial registrado' }
+      ],
+      amenities: venueData.amenities || ['Wifi', 'Aire Acondicionado', 'Bebidas'],
+      phone: venueData.phone || '',
+      email: venueData.email || '',
+      website: venueData.website || '',
+      instagram: venueData.instagram || '',
+      about: venueData.about || 'Bienvenido a nuestro establecimiento.'
+    };
+    try {
+      const saved = await venuesApi.upsert(newId, newVenue);
+      setVenues(prev => [saved, ...prev.filter(v => v.id !== newId)]);
+      showToast(`¡Establecimiento "${saved.name}" registrado en Styluu!`, 'success');
+      return saved;
+    } catch (err) {
+      setVenues(prev => [newVenue, ...prev.filter(v => v.id !== newId)]);
+      showToast(`Establecimiento "${newVenue.name}" guardado`, 'info');
+      return newVenue;
+    }
+  }, []);
+
+  const deleteVenue = useCallback(async (venueId) => {
+    try {
+      setVenues(prev => prev.filter(v => v.id !== venueId));
+      showToast('Establecimiento retirado del catálogo', 'info');
+    } catch (err) {
+      showToast('Error al eliminar establecimiento', 'error');
+    }
+  }, []);
 
   // ═══════════════════════════════════════════════════════════════════════════
   //  TOAST
@@ -830,6 +894,8 @@ export const AppProvider = ({ children }) => {
       selectedLocation, setSelectedLocation,
       // Venues
       venues, setVenues,
+      activeVenueId, setActiveVenueId, activeVenue,
+      createVenue, deleteVenue,
       getVenueOperatingHours, getStoreTimeSlots, updateVenueOperatingHours, updateVenueServices,
       storeOperatingHours,
       // Staff

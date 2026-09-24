@@ -29,7 +29,9 @@ import {
   Sparkles,
   ShieldCheck,
   ShoppingBag,
-  DollarSign
+  DollarSign,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 
 export const BusinessOS = () => {
@@ -40,6 +42,9 @@ export const BusinessOS = () => {
     setCurrentView, 
     calendarAppointments,
     venues,
+    activeVenue,
+    activeVenueId,
+    setActiveVenueId,
     showToast
   } = useApp();
 
@@ -51,8 +56,9 @@ export const BusinessOS = () => {
 
   const [posAppointment, setPosAppointment] = useState(null);
   const [isPOSOpen, setIsPOSOpen] = useState(false);
+  const [isVenueDropdownOpen, setIsVenueDropdownOpen] = useState(false);
 
-  const currentSalon = (venues && venues[0]) || {
+  const currentSalon = activeVenue || (venues && venues[0]) || {
     name: 'The Hustle Barber & Lounge',
     city: 'Miami, FL',
     image: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=400&q=80'
@@ -117,17 +123,79 @@ export const BusinessOS = () => {
             </button>
           </div>
 
-          {/* Active Venue Selector Card */}
-          <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center gap-3">
-            <img
-              src={currentSalon?.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=400&q=80'}
-              alt={currentSalon?.name || 'Styluu Salon'}
-              className="w-10 h-10 rounded-xl object-cover border border-slate-600"
-            />
-            <div className="flex-1 min-w-0">
-              <div className="font-bold text-xs text-white truncate">{currentSalon?.name || 'The Hustle Barber & Lounge'}</div>
-              <div className="text-[10px] text-slate-400 truncate">{currentSalon?.city || 'Miami, FL'}</div>
-            </div>
+          {/* Active Venue Selector Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setIsVenueDropdownOpen(!isVenueDropdownOpen)}
+              className="w-full p-3 rounded-2xl bg-slate-800/80 border border-slate-700/60 hover:border-brand-purple/50 flex items-center justify-between gap-2.5 transition-all text-left group"
+              title="Cambiar de establecimiento o sede"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <img
+                  src={(currentSalon?.images && currentSalon.images[0]) || currentSalon?.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=400&q=80'}
+                  alt={currentSalon?.name || 'Styluu Salon'}
+                  className="w-9 h-9 rounded-xl object-cover border border-slate-600 shrink-0"
+                />
+                <div className="min-w-0">
+                  <div className="font-bold text-xs text-white truncate flex items-center gap-1">
+                    <span>{currentSalon?.name}</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 truncate flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block shrink-0"></span>
+                    <span className="truncate">{currentSalon?.city}</span>
+                  </div>
+                </div>
+              </div>
+              <ChevronDown className={`w-4 h-4 text-slate-400 group-hover:text-white transition-transform shrink-0 ${isVenueDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Dropdown Menu */}
+            {isVenueDropdownOpen && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-2xl p-2 shadow-2xl z-50 animate-in fade-in space-y-1">
+                <div className="px-2.5 py-1 text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                  Cambiar Establecimiento
+                </div>
+                {venues.map((v) => {
+                  const isSelected = v.id === currentSalon?.id;
+                  const vImg = (v.images && v.images[0]) || v.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=400&q=80';
+                  return (
+                    <button
+                      key={v.id}
+                      onClick={() => {
+                        setActiveVenueId(v.id);
+                        setIsVenueDropdownOpen(false);
+                        showToast(`Sede activa: ${v.name}`, 'info');
+                      }}
+                      className={`w-full p-2 rounded-xl flex items-center justify-between text-left transition-colors ${
+                        isSelected ? 'bg-brand-purple/20 text-white border border-brand-purple/40' : 'hover:bg-slate-800 text-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <img src={vImg} alt={v.name} className="w-7 h-7 rounded-lg object-cover shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold truncate">{v.name}</div>
+                          <div className="text-[10px] text-slate-400 truncate">{v.city}</div>
+                        </div>
+                      </div>
+                      {isSelected && <Check className="w-4 h-4 text-brand-mint shrink-0 ml-1" />}
+                    </button>
+                  );
+                })}
+
+                <div className="pt-1 border-t border-slate-800 mt-1">
+                  <button
+                    onClick={() => {
+                      setIsVenueDropdownOpen(false);
+                      setCurrentView('super-admin');
+                    }}
+                    className="w-full p-2 rounded-xl text-left text-xs font-bold text-brand-mint hover:bg-slate-800 flex items-center gap-2"
+                  >
+                    <ShieldCheck className="w-4 h-4 shrink-0" />
+                    <span>Panel Super Admin Maestro</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Navigation Links */}
