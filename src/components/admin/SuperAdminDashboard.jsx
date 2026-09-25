@@ -111,25 +111,29 @@ export const SuperAdminDashboard = () => {
   const [closingHour, setClosingHour] = useState('20:00');
   const [imageUrl, setImageUrl] = useState(SAMPLE_COVERS[0].url);
 
+  // Safe Venues Array
+  const safeVenues = useMemo(() => (Array.isArray(venues) ? venues.filter(Boolean) : []), [venues]);
+
   // Global Platform Metrics
-  const totalVenues = venues.length;
-  const totalClients = clientsCRM.length;
-  const totalAppointments = calendarAppointments.length + clientBookings.length;
-  const totalServices = venues.reduce((acc, v) => acc + (v.services?.length || 0), 0);
-  const totalVolume = salesTransactions.reduce((acc, t) => acc + (Number(t.totalAmount) || 0), 0);
+  const totalVenues = safeVenues.length;
+  const totalClients = (clientsCRM || []).length;
+  const totalAppointments = (calendarAppointments || []).length + (clientBookings || []).length;
+  const totalServices = safeVenues.reduce((acc, v) => acc + (v?.services?.length || 0), 0);
+  const totalVolume = (salesTransactions || []).reduce((acc, t) => acc + (Number(t?.totalAmount) || 0), 0);
 
   // Filtered Venues
   const filteredVenues = useMemo(() => {
-    return venues.filter((v) => {
+    return safeVenues.filter((v) => {
+      if (!v) return false;
       const matchesCategory = selectedCategory === 'all' || v.category === selectedCategory;
-      const q = searchQuery.toLowerCase().trim();
+      const q = (searchQuery || '').toLowerCase().trim();
       const matchesSearch = !q ||
         (v.name && v.name.toLowerCase().includes(q)) ||
         (v.city && v.city.toLowerCase().includes(q)) ||
         (v.address && v.address.toLowerCase().includes(q));
       return matchesCategory && matchesSearch;
     });
-  }, [venues, selectedCategory, searchQuery]);
+  }, [safeVenues, selectedCategory, searchQuery]);
 
   const handleOpenBusinessOSForVenue = (venueId) => {
     setActiveVenueId(venueId);
@@ -142,7 +146,7 @@ export const SuperAdminDashboard = () => {
   };
 
   const handleDeleteVenue = async (venueId, venueName) => {
-    if (venues.length <= 1) {
+    if (safeVenues.length <= 1) {
       alert('Debe existir al menos un establecimiento en la plataforma.');
       return;
     }
@@ -414,8 +418,8 @@ export const SuperAdminDashboard = () => {
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
             {Object.entries(CATEGORY_LABELS).map(([catKey, catLabel]) => {
               const count = catKey === 'all'
-                ? venues.length
-                : venues.filter(v => v.category === catKey).length;
+                ? safeVenues.length
+                : safeVenues.filter(v => v && v.category === catKey).length;
               const isSelected = selectedCategory === catKey;
               return (
                 <button
@@ -441,9 +445,18 @@ export const SuperAdminDashboard = () => {
 
         {/* Venues Grid */}
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredVenues.map((venue) => {
-            const cover = (venue.images && venue.images[0]) || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=900&q=80';
-            const servicesCount = venue.services?.length || 0;
+          {filteredVenues.length === 0 ? (
+            <div className="col-span-full py-16 text-center bg-slate-800/40 rounded-3xl border border-slate-700/60 p-8 space-y-3">
+              <Building2 className="w-12 h-12 text-slate-500 mx-auto opacity-50" />
+              <h3 className="text-base font-bold text-white">No se encontraron establecimientos</h3>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                No hay negocios que coincidan con los filtros seleccionados o el catálogo está vacío.
+              </p>
+            </div>
+          ) : (
+            filteredVenues.map((venue) => {
+              const cover = (venue.images && venue.images[0]) || venue.image || SAMPLE_COVERS[0].url;
+              const servicesCount = venue.services?.length || 0;
 
             return (
               <div
@@ -532,7 +545,7 @@ export const SuperAdminDashboard = () => {
 
               </div>
             );
-          })}
+          }))}
         </section>
 
       </main>

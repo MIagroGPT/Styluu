@@ -35,6 +35,7 @@ export const venuesApi = {
   list:       ()           => get('/api/venues'),
   get:        (id)         => get(`/api/venues/${id}`),
   upsert:     (id, data)   => put(`/api/venues/${id}`, data),
+  remove:     (id)         => del(`/api/venues/${id}`),
   bulkInsert: (venues)     => post('/api/venues/bulk', venues),
 };
 

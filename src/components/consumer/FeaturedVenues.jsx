@@ -16,7 +16,8 @@ export const FeaturedVenues = () => {
     { id: 'nails', label: t('featured_filter_nails') },
   ];
 
-  const filteredVenues = venues.filter(venue => {
+  const filteredVenues = (venues || []).filter(venue => {
+    if (!venue) return false;
     if (selectedCategory === 'all') return true;
     return venue.category === selectedCategory;
   });

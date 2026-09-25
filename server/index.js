@@ -137,7 +137,7 @@ app.get('/api/setup', async (_req, res) => {
 app.get('/api/venues', async (_req, res) => {
   try {
     const { rows } = await db('SELECT * FROM venues ORDER BY created_at');
-    res.json(rows.map(mapVenueOut));
+    res.json(rows.map(mapVenueOut).filter(Boolean));
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -181,6 +181,18 @@ app.put('/api/venues/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+app.delete('/api/venues/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db('DELETE FROM venues WHERE id=$1', [id]);
+    await db("UPDATE staff_members SET venue_id = 'venue-1' WHERE venue_id=$1", [id]).catch(() => {});
+    await db("UPDATE calendar_appointments SET venue_id = 'venue-1' WHERE venue_id=$1", [id]).catch(() => {});
+    res.json({ status: 'ok', deleted: id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Bulk upsert all venues (for initial sync)
 app.post('/api/venues/bulk', async (req, res) => {
   const venues = req.body;
@@ -214,17 +226,50 @@ app.post('/api/venues/bulk', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+function safeParseJSON(val, fallback) {
+  if (val === null || val === undefined) return fallback;
+  if (typeof val === 'object') return val;
+  try {
+    return JSON.parse(val);
+  } catch {
+    return fallback;
+  }
+}
+
 function mapVenueOut(r) {
+  if (!r) return null;
+  const images = safeParseJSON(r.images, []);
+  const services = safeParseJSON(r.services, []);
+  const amenities = safeParseJSON(r.amenities, []);
+  const openDays = safeParseJSON(r.open_days, []);
+  const dailySchedule = safeParseJSON(r.daily_schedule, {});
+
   return {
-    id: r.id, name: r.name, tagline: r.tagline, address: r.address,
-    city: r.city, category: r.category, rating: Number(r.rating),
-    reviewsCount: r.reviews_count, priceRange: r.price_range,
-    hours: r.hours, openingHour: r.opening_hour, closingHour: r.closing_hour,
-    openDays: r.open_days, dailySchedule: r.daily_schedule,
-    images: r.images, services: r.services, amenities: r.amenities,
-    phone: r.phone, email: r.email, website: r.website,
-    instagram: r.instagram, about: r.about,
-    createdAt: r.created_at, updatedAt: r.updated_at,
+    id: r.id,
+    name: r.name || 'Establecimiento',
+    tagline: r.tagline || '',
+    address: r.address || '',
+    city: r.city || '',
+    category: r.category || 'barber',
+    rating: Number(r.rating || 5.0),
+    reviewsCount: Number(r.reviews_count || 0),
+    priceRange: r.price_range || '$$',
+    hours: r.hours || '',
+    openingHour: r.opening_hour || '09:00',
+    closingHour: r.closing_hour || '20:00',
+    openDays,
+    dailySchedule,
+    images,
+    image: (Array.isArray(images) && images[0]) || '',
+    services,
+    amenities,
+    phone: r.phone || '',
+    email: r.email || '',
+    website: r.website || '',
+    instagram: r.instagram || '',
+    about: r.about || '',
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
   };
 }
 

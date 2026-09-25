@@ -25,14 +25,14 @@ export const VenueCard = ({ venue }) => {
       {/* Top Image Container */}
       <div className="relative h-52 sm:h-56 w-full overflow-hidden bg-slate-100">
         <img
-          src={venue.image}
-          alt={venue.name}
+          src={venue.image || venue.images?.[0] || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=900&q=80'}
+          alt={venue.name || 'Establecimiento'}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
 
         {/* Floating Badges */}
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-          {venue.badges?.map((badge, idx) => (
+          {(venue.badges || []).map((badge, idx) => (
             <span 
               key={idx} 
               className="px-2.5 py-1 rounded-full bg-brand-carbon/80 backdrop-blur-md text-white text-[10px] font-bold tracking-wide uppercase border border-white/10"
@@ -45,8 +45,8 @@ export const VenueCard = ({ venue }) => {
         {/* Rating Pill */}
         <div className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md shadow-md text-brand-carbon">
           <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-          <span className="text-xs font-black">{venue.rating.toFixed(1)}</span>
-          <span className="text-[11px] text-slate-400 font-medium">({venue.reviewsCount})</span>
+          <span className="text-xs font-black">{Number(venue.rating || 5.0).toFixed(1)}</span>
+          <span className="text-[11px] text-slate-400 font-medium">({venue.reviewsCount ?? 0})</span>
         </div>
       </div>
 
@@ -56,11 +56,11 @@ export const VenueCard = ({ venue }) => {
           {/* Category & Distance */}
           <div className="flex items-center justify-between text-xs text-slate-400 mb-1 font-medium">
             <span className="text-brand-purple font-bold uppercase tracking-wider text-[11px]">
-              {venue.category.toUpperCase()}
+              {(venue.category || 'barber').toUpperCase()}
             </span>
             <span className="flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5 text-brand-mint" />
-              {venue.city}
+              {venue.city || 'Bogotá'}
             </span>
           </div>
 

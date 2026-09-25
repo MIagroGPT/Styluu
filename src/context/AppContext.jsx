@@ -180,12 +180,13 @@ export const AppProvider = ({ children }) => {
         if (cancelled) return;
 
         // If DB is empty (first run), seed with demo data
-        if (!venuesData.length) {
+        const validVenues = Array.isArray(venuesData) ? venuesData.filter(Boolean) : [];
+        if (!validVenues.length) {
           await venuesApi.bulkInsert(VENUES);
           const freshVenues = await venuesApi.list();
-          setVenues(Array.isArray(freshVenues) && freshVenues.length ? freshVenues : VENUES);
+          setVenues(Array.isArray(freshVenues) && freshVenues.length ? freshVenues.filter(Boolean) : VENUES);
         } else {
-          setVenues(Array.isArray(venuesData) ? venuesData : VENUES);
+          setVenues(validVenues);
         }
 
         if (!staffData.length) {
@@ -264,18 +265,20 @@ export const AppProvider = ({ children }) => {
   // ═══════════════════════════════════════════════════════════════════════════
   //  ACTIVE VENUE & STAFF ACTIONS (Multi-Venue Segregation)
   // ═══════════════════════════════════════════════════════════════════════════
-  const activeVenue = (venues && venues.find(v => v.id === activeVenueId)) || (venues && venues[0]) || VENUES[0];
+  const activeVenue = (Array.isArray(venues) && venues.find(v => v && v.id === activeVenueId)) 
+    || (Array.isArray(venues) && venues.find(Boolean)) 
+    || VENUES[0];
 
   // Derived staff for the currently active venue
   const staffMembers = useMemo(() => {
     const currentVenueId = activeVenue?.id || activeVenueId || 'venue-1';
-    return allStaffMembers.filter(s => resolveStaffVenueId(s) === currentVenueId);
+    return (allStaffMembers || []).filter(s => s && resolveStaffVenueId(s) === currentVenueId);
   }, [allStaffMembers, activeVenue, activeVenueId]);
 
   // Query staff for any specific venue (e.g. for customer detail views or booking modals)
   const getVenueStaff = useCallback((venueId) => {
     const targetId = venueId || activeVenue?.id || activeVenueId || 'venue-1';
-    return allStaffMembers.filter(s => resolveStaffVenueId(s) === targetId);
+    return (allStaffMembers || []).filter(s => s && resolveStaffVenueId(s) === targetId);
   }, [allStaffMembers, activeVenue, activeVenueId]);
 
   const updateStaffCommission = useCallback(async (staffId, newRate) => {
@@ -430,7 +433,7 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateVenueOperatingHours = useCallback(async (venueId, dailyScheduleOrOpenH, closingHour, openDays, formattedHoursString) => {
-    const targetVenueId = venueId || activeVenue.id;
+    const targetVenueId = venueId || activeVenue?.id || 'venue-1';
     let newDailySchedule = {};
     let newOpenDays = [];
     let overallOpening = '09:00';
@@ -550,7 +553,18 @@ export const AppProvider = ({ children }) => {
 
   const deleteVenue = useCallback(async (venueId) => {
     try {
-      setVenues(prev => prev.filter(v => v.id !== venueId));
+      await venuesApi.remove(venueId).catch((err) => console.warn('venuesApi.remove:', err));
+      setVenues(prev => {
+        const remaining = (prev || []).filter(v => v && v.id !== venueId);
+        return remaining.length > 0 ? remaining : VENUES;
+      });
+      setActiveVenueId(prevId => {
+        if (prevId === venueId) {
+          try { localStorage.removeItem('styluu_active_venue_id'); } catch {}
+          return 'venue-1';
+        }
+        return prevId;
+      });
       showToast('Establecimiento retirado del catálogo', 'info');
     } catch (err) {
       showToast('Error al eliminar establecimiento', 'error');
