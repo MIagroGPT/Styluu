@@ -6,15 +6,10 @@ import {
   Star, 
   MapPin, 
   Navigation, 
-  Calendar, 
   Sparkles, 
-  Scissors, 
-  Heart, 
-  Flame, 
-  X, 
-  ArrowRight,
-  Crosshair,
-  ExternalLink,
+  Crosshair, 
+  Plus, 
+  Minus,
   Layers
 } from 'lucide-react';
 
@@ -22,7 +17,6 @@ export const InteractiveVenueMap = ({
   venues = [], 
   selectedVenueId = null, 
   onSelectVenue = null,
-  height = '100%',
   interactive = true,
   defaultCenter = [25.7654, -80.1912],
   defaultZoom = 13,
@@ -36,9 +30,39 @@ export const InteractiveVenueMap = ({
   const userMarkerRef = useRef(null);
 
   const [userLocation, setUserLocation] = useState(null);
-  const [activePopupVenue, setActivePopupVenue] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
-  const [tileMode, setTileMode] = useState('voyager'); // 'voyager' | 'osm'
+
+  // Expose global bridge functions for popup clicks
+  useEffect(() => {
+    window.__bublyme_book = (venueId) => {
+      const v = (venues || []).find(item => item.id === venueId);
+      if (v) {
+        setSelectedVenue(v);
+        openBookingModal(v);
+      }
+    };
+
+    window.__bublyme_directions = (venueId) => {
+      const v = (venues || []).find(item => item.id === venueId);
+      if (v) {
+        openDirections(v.lat, v.lng, v.address, v.name);
+      }
+    };
+
+    window.__bublyme_detail = (venueId) => {
+      const v = (venues || []).find(item => item.id === venueId);
+      if (v) {
+        setSelectedVenue(v);
+        setCurrentView('venue-detail');
+      }
+    };
+
+    return () => {
+      delete window.__bublyme_book;
+      delete window.__bublyme_directions;
+      delete window.__bublyme_detail;
+    };
+  }, [venues, setSelectedVenue, openBookingModal, setCurrentView]);
 
   // Determine icon by venue category
   const getCategorySymbol = (category) => {
@@ -51,7 +75,7 @@ export const InteractiveVenueMap = ({
     }
   };
 
-  // ── Initialize Leaflet Map ──────────────────────────────────────────────
+  // ── Initialize Leaflet Map with 100% Free OpenStreetMap Tiles (No API key needed) ──
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
@@ -63,21 +87,13 @@ export const InteractiveVenueMap = ({
         attributionControl: false
       });
 
-      // CartoDB Voyager modern clean tiles
-      const tileLayer = L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-        {
-          maxZoom: 19,
-          subdomains: 'abcd',
-        }
-      ).addTo(map);
+      // 100% Free OpenStreetMap tile server (Never requires API keys, ultra fast and globally accessible)
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        subdomains: ['a', 'b', 'c']
+      }).addTo(map);
 
       mapInstanceRef.current = map;
-
-      // Close popup on map click background
-      map.on('click', () => {
-        setActivePopupVenue(null);
-      });
     }
 
     return () => {
@@ -88,7 +104,72 @@ export const InteractiveVenueMap = ({
     };
   }, []);
 
-  // ── Render Custom Pill Markers for Venues ───────────────────────────────
+  // ── Build HTML for Pin-Anchored Popup ──────────────────────────────────
+  const buildPopupHtml = (venue, dynamicDistStr) => {
+    const imgUrl = venue.image || venue.images?.[0] || 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=600&q=80';
+    const rating = Number(venue.rating || 5.0).toFixed(1);
+    const reviews = venue.reviewsCount || 400;
+    const address = venue.address || venue.city || 'Ubicación céntrica';
+    const distBadge = dynamicDistStr ? `📍 ${dynamicDistStr}` : (venue.distance ? `📍 ${venue.distance}` : '');
+
+    return `
+      <div class="w-72 bg-white rounded-3xl p-3 shadow-2xl border border-slate-200/90 text-slate-800 font-sans text-left animate-in fade-in zoom-in-95 duration-150 select-none">
+        
+        <!-- Image Header -->
+        <div class="relative h-32 w-full rounded-2xl overflow-hidden cursor-pointer group mb-2.5" onclick="window.__bublyme_detail('${venue.id}')">
+          <img src="${imgUrl}" alt="${venue.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+          
+          <!-- Rating tag -->
+          <div class="absolute bottom-2 left-2 flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/95 backdrop-blur-md text-xs font-black text-slate-900 shadow-sm">
+            <span class="text-amber-500">★</span>
+            <span>${rating}</span>
+            <span class="text-[10px] text-slate-500 font-normal">(${reviews})</span>
+          </div>
+
+          <!-- Distance tag -->
+          ${distBadge ? `
+            <div class="absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-brand-mint text-brand-carbon text-[10px] font-black uppercase shadow-sm">
+              ${distBadge}
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Venue Details -->
+        <div class="space-y-1 mb-3 px-1">
+          <h4 class="font-bold text-sm text-slate-900 truncate hover:text-brand-purple cursor-pointer transition-colors" onclick="window.__bublyme_detail('${venue.id}')">
+            ${venue.name}
+          </h4>
+          <p class="text-[11px] text-slate-500 truncate flex items-center gap-1">
+            <span>📍 ${address}</span>
+          </p>
+        </div>
+
+        <!-- Actions: "Cómo llegar" & "Agendar" -->
+        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+          <button 
+            type="button"
+            onclick="window.__bublyme_directions('${venue.id}')"
+            class="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+          >
+            <span>🧭 Cómo llegar</span>
+          </button>
+
+          <button 
+            type="button"
+            onclick="window.__bublyme_book('${venue.id}')"
+            class="py-2.5 px-3 rounded-xl bg-brand-purple hover:bg-brand-purple-dark text-white font-bold text-xs flex items-center justify-center gap-1 shadow-brand-sm transition-colors"
+          >
+            <span>Agendar</span>
+            <span>→</span>
+          </button>
+        </div>
+
+      </div>
+    `;
+  };
+
+  // ── Render Custom Pill Markers & Attach Leaflet Popups to Pins ──────────
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !venues) return;
@@ -103,16 +184,23 @@ export const InteractiveVenueMap = ({
     venues.forEach(venue => {
       if (!venue || !venue.lat || !venue.lng) return;
 
-      const isSelected = selectedVenueId === venue.id || (activePopupVenue && activePopupVenue.id === venue.id);
+      const isSelected = selectedVenueId === venue.id;
       const catSymbol = getCategorySymbol(venue.category);
 
-      // Create Custom HTML Pin Marker (Fresha Style)
+      // Distance calculation from user GPS if active
+      let distStr = null;
+      if (userLocation) {
+        const distKm = calculateDistanceKm(userLocation.lat, userLocation.lng, venue.lat, venue.lng);
+        distStr = formatDistance(distKm);
+      }
+
+      // Create Custom Pin Icon
       const pinHtml = `
         <div class="group relative cursor-pointer transform transition-all duration-200 ${isSelected ? 'scale-110 z-50' : 'hover:scale-110 hover:z-40'}">
           <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full shadow-lg font-black text-xs transition-all ${
             isSelected 
               ? 'bg-brand-purple text-white ring-4 ring-brand-purple/30 scale-105 shadow-purple-glow' 
-              : 'bg-slate-900/90 backdrop-blur-md text-white border border-slate-700/80 hover:bg-brand-purple hover:border-brand-purple'
+              : 'bg-slate-900/95 backdrop-blur-md text-white border border-slate-700/80 hover:bg-brand-purple hover:border-brand-purple'
           }">
             <span class="text-xs">${catSymbol}</span>
             <span class="text-amber-400 font-extrabold">★</span>
@@ -134,12 +222,18 @@ export const InteractiveVenueMap = ({
 
       const marker = L.marker([venue.lat, venue.lng], { icon: customIcon }).addTo(map);
 
-      // Marker Click & Hover Handlers
-      marker.on('click', (e) => {
-        L.DomEvent.stopPropagation(e);
-        setActivePopupVenue(venue);
+      // Bind PopUp Directly Above Marker
+      const popupContent = buildPopupHtml(venue, distStr);
+      marker.bindPopup(popupContent, {
+        offset: [0, -34],
+        closeButton: false,
+        className: 'venue-pin-popup',
+        autoPan: true,
+        autoPanPadding: [30, 30]
+      });
+
+      marker.on('click', () => {
         if (onSelectVenue) onSelectVenue(venue);
-        map.panTo([venue.lat, venue.lng], { animate: true, duration: 0.5 });
       });
 
       markersRef.current[venue.id] = marker;
@@ -147,10 +241,17 @@ export const InteractiveVenueMap = ({
       hasValidCoords = true;
     });
 
-    if (hasValidCoords && !userLocation && interactive && venues.length > 1) {
+    // Programmatically open popup when selectedVenueId changes from parent
+    if (selectedVenueId && markersRef.current[selectedVenueId]) {
+      const selectedMarker = markersRef.current[selectedVenueId];
+      selectedMarker.openPopup();
+      map.panTo(selectedMarker.getLatLng(), { animate: true, duration: 0.4 });
+    }
+
+    if (hasValidCoords && !userLocation && !selectedVenueId && interactive && venues.length > 1) {
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
     }
-  }, [venues, selectedVenueId, activePopupVenue]);
+  }, [venues, selectedVenueId, userLocation]);
 
   // ── Handle GPS Geolocation ──────────────────────────────────────────────
   const handleLocateUser = useCallback(() => {
@@ -169,10 +270,8 @@ export const InteractiveVenueMap = ({
 
         const map = mapInstanceRef.current;
         if (map) {
-          // Remove previous user beacon
           if (userMarkerRef.current) userMarkerRef.current.remove();
 
-          // Pulse radar beacon HTML for user location
           const userBeaconHtml = `
             <div class="relative flex items-center justify-center">
               <div class="w-8 h-8 rounded-full bg-cyan-400/30 animate-ping absolute"></div>
@@ -199,23 +298,19 @@ export const InteractiveVenueMap = ({
     );
   }, []);
 
-  // Calculate live distance from user location to active popup venue
-  const dynamicDistance = activePopupVenue && userLocation
-    ? calculateDistanceKm(userLocation.lat, userLocation.lng, activePopupVenue.lat, activePopupVenue.lng)
-    : null;
-
   return (
     <div className="relative w-full h-full rounded-3xl overflow-hidden shadow-xl border border-slate-200/90 bg-slate-100 flex flex-col">
       
       {/* The Leaflet Map Canvas */}
       <div ref={mapContainerRef} className="w-full h-full min-h-[400px] z-10" />
 
-      {/* Map Interactive Overlays and Floating Controls */}
+      {/* Floating Controls */}
       {showControls && (
         <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
           
-          {/* Geolocation GPS Button */}
+          {/* GPS Locate Button */}
           <button
+            type="button"
             onClick={handleLocateUser}
             disabled={isLocating}
             className={`p-3 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200 shadow-lg text-slate-700 hover:text-brand-purple hover:bg-white transition-all flex items-center gap-2 text-xs font-bold ${
@@ -230,6 +325,7 @@ export const InteractiveVenueMap = ({
           {/* Zoom Controls */}
           <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200 shadow-lg p-1 flex flex-col divide-y divide-slate-100">
             <button
+              type="button"
               onClick={() => mapInstanceRef.current?.zoomIn()}
               className="p-2.5 text-slate-700 hover:text-brand-purple hover:bg-slate-50 rounded-xl transition-colors font-bold text-sm"
               title="Acercar"
@@ -237,106 +333,13 @@ export const InteractiveVenueMap = ({
               +
             </button>
             <button
+              type="button"
               onClick={() => mapInstanceRef.current?.zoomOut()}
               className="p-2.5 text-slate-700 hover:text-brand-purple hover:bg-slate-50 rounded-xl transition-colors font-bold text-sm"
               title="Alejar"
             >
               -
             </button>
-          </div>
-
-        </div>
-      )}
-
-      {/* Floating Card Popup on Marker Hover / Click (Fresha Style) */}
-      {activePopupVenue && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 max-w-sm w-[92%] sm:w-80 bg-white rounded-3xl p-3.5 shadow-2xl border border-slate-200 animate-in fade-in slide-in-from-bottom-4 duration-200">
-          
-          {/* Close Popup button */}
-          <button
-            onClick={() => setActivePopupVenue(null)}
-            className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 hover:bg-black text-white transition-all z-20"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Venue Image */}
-          <div className="relative h-36 w-full rounded-2xl overflow-hidden mb-3 group cursor-pointer"
-            onClick={() => {
-              setSelectedVenue(activePopupVenue);
-              setCurrentView('venue-detail');
-            }}
-          >
-            <img
-              src={activePopupVenue.image || activePopupVenue.images?.[0]}
-              alt={activePopupVenue.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            
-            {/* Rating Tag */}
-            <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/95 backdrop-blur-md text-xs font-black text-slate-900 shadow-sm">
-              <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-              <span>{Number(activePopupVenue.rating || 5.0).toFixed(1)}</span>
-              <span className="text-[10px] text-slate-500 font-normal">({activePopupVenue.reviewsCount || 400})</span>
-            </div>
-
-            {/* Distance badge if GPS active */}
-            {dynamicDistance !== null ? (
-              <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-lg bg-brand-mint text-brand-carbon text-[10px] font-black uppercase shadow-sm">
-                📍 {formatDistance(dynamicDistance)}
-              </div>
-            ) : activePopupVenue.distance && (
-              <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-lg bg-white/90 text-slate-700 text-[10px] font-bold">
-                {activePopupVenue.distance}
-              </div>
-            )}
-          </div>
-
-          {/* Venue Info */}
-          <div className="space-y-1 mb-3">
-            <h4 
-              onClick={() => {
-                setSelectedVenue(activePopupVenue);
-                setCurrentView('venue-detail');
-              }}
-              className="font-bold text-sm text-slate-900 truncate hover:text-brand-purple cursor-pointer transition-colors"
-            >
-              {activePopupVenue.name}
-            </h4>
-            <p className="text-[11px] text-slate-500 truncate flex items-center gap-1">
-              <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-              <span>{activePopupVenue.address || activePopupVenue.city}</span>
-            </p>
-          </div>
-
-          {/* Action Buttons: "Cómo llegar" (GPS route) & "Agendar" */}
-          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
-            
-            {/* GPS Directions Route Button */}
-            <button
-              type="button"
-              onClick={() => openDirections(activePopupVenue.lat, activePopupVenue.lng, activePopupVenue.address, activePopupVenue.name)}
-              className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors group"
-              title="Abrir ruta en Google Maps / GPS"
-            >
-              <Navigation className="w-3.5 h-3.5 text-brand-purple group-hover:scale-110 transition-transform" />
-              <span>Cómo llegar</span>
-            </button>
-
-            {/* Agendar / Ver Perfil */}
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedVenue(activePopupVenue);
-                openBookingModal(activePopupVenue);
-              }}
-              className="py-2.5 px-3 rounded-xl bg-brand-purple hover:bg-brand-purple-dark text-white font-bold text-xs flex items-center justify-center gap-1 shadow-brand-sm transition-colors"
-            >
-              <span>Agendar</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-
           </div>
 
         </div>

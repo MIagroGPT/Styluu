@@ -100,3 +100,25 @@
 .animate-beacon {
   animation: beacon-glow 2.2s infinite ease-in-out;
 }
+
+/* Leaflet Custom Popup & Marker Styling */
+.leaflet-popup-content-wrapper {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 24px !important;
+}
+.leaflet-popup-content {
+  margin: 0 !important;
+  line-height: inherit !important;
+  width: auto !important;
+}
+.leaflet-popup-tip-container {
+  display: none !important;
+}
+.leaflet-popup-close-button {
+  display: none !important;
+}
+.leaflet-container {
+  font-family: inherit !important;
+}
