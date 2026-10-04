@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useApp } from '../../context/AppContext';
+import { InteractiveVenueMap } from './InteractiveVenueMap';
+import { openDirections } from '../../lib/geoUtils';
 import { 
   Star, 
   MapPin, 
@@ -16,7 +18,9 @@ import {
   User,
   ArrowRight,
   ShoppingBag,
-  Scissors
+  Scissors,
+  Navigation,
+  Info
 } from 'lucide-react';
 
 export const VenueDetailView = () => {
@@ -27,7 +31,7 @@ export const VenueDetailView = () => {
     return getVenueStaff ? getVenueStaff(selectedVenue?.id) : staffMembers;
   }, [getVenueStaff, selectedVenue?.id, staffMembers]);
 
-  const [activeMainTab, setActiveMainTab] = useState('services'); // 'services' | 'products'
+  const [activeMainTab, setActiveMainTab] = useState('services'); // 'services' | 'products' | 'about'
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedServices, setSelectedServices] = useState([]);
 
@@ -56,6 +60,10 @@ export const VenueDetailView = () => {
       ...selectedVenue,
       initialSelectedServices: selectedServices.length > 0 ? selectedServices : [services[0]]
     });
+  };
+
+  const handleOpenDirections = () => {
+    openDirections(selectedVenue.lat, selectedVenue.lng, selectedVenue.address, selectedVenue.name);
   };
 
   return (
@@ -184,33 +192,42 @@ export const VenueDetailView = () => {
               </div>
             </div>
 
-            {/* TAB SELECTOR: SERVICIOS VS PRODUCTOS */}
-            <div className="border-b border-slate-200 flex gap-4">
+            {/* TAB SELECTOR: SERVICIOS VS PRODUCTOS VS ACERCA DE / MAPA */}
+            <div className="border-b border-slate-200 flex gap-2 sm:gap-4 overflow-x-auto">
               <button
                 onClick={() => setActiveMainTab('services')}
-                className={`pb-3 font-display font-black text-lg flex items-center gap-2 border-b-2 transition-all ${
+                className={`pb-3 font-display font-black text-sm sm:text-lg flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
                   activeMainTab === 'services'
                     ? 'border-brand-purple text-brand-purple'
                     : 'border-transparent text-slate-400 hover:text-slate-700'
                 }`}
               >
-                <Scissors className="w-5 h-5" />
-                <span>Menú de Servicios ({services.length})</span>
+                <Scissors className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>Servicios ({services.length})</span>
               </button>
 
               <button
                 onClick={() => setActiveMainTab('products')}
-                className={`pb-3 font-display font-black text-lg flex items-center gap-2 border-b-2 transition-all ${
+                className={`pb-3 font-display font-black text-sm sm:text-lg flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
                   activeMainTab === 'products'
                     ? 'border-brand-purple text-brand-purple'
                     : 'border-transparent text-slate-400 hover:text-slate-700'
                 }`}
               >
-                <ShoppingBag className="w-5 h-5" />
-                <span>Productos & Reventa ({products.length})</span>
-                <span className="px-2 py-0.5 rounded-full bg-brand-mint/30 text-teal-900 text-[10px] font-black uppercase">
-                  Tienda
-                </span>
+                <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>Tienda ({products.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveMainTab('about')}
+                className={`pb-3 font-display font-black text-sm sm:text-lg flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
+                  activeMainTab === 'about'
+                    ? 'border-brand-purple text-brand-purple'
+                    : 'border-transparent text-slate-400 hover:text-slate-700'
+                }`}
+              >
+                <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-brand-mint" />
+                <span>Ubicación & Mapa</span>
               </button>
             </div>
 
@@ -344,6 +361,89 @@ export const VenueDetailView = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* TAB 3: LOCATION & ABOUT MAP */}
+            {activeMainTab === 'about' && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                
+                {/* About Pitch */}
+                <div className="bg-slate-50 border border-slate-200/80 rounded-3xl p-6 space-y-3">
+                  <h4 className="font-display font-black text-lg text-brand-carbon">
+                    Acerca de {selectedVenue.name}
+                  </h4>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    {selectedVenue.tagline}. Brindamos una experiencia premium de cuidado personal, utilizando los mejores productos del mercado y protocolos de bioseguridad certificados.
+                  </p>
+                </div>
+
+                {/* Location & GPS Navigation Card */}
+                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                        Dirección del Establecimiento
+                      </span>
+                      <h4 className="font-bold text-base text-brand-carbon flex items-center gap-2 mt-0.5">
+                        <MapPin className="w-4 h-4 text-brand-purple shrink-0" />
+                        <span>{selectedVenue.address || selectedVenue.city}</span>
+                      </h4>
+                    </div>
+
+                    {/* GPS Route Button */}
+                    <button
+                      onClick={handleOpenDirections}
+                      className="px-5 py-3 rounded-2xl bg-slate-900 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all shrink-0 group"
+                    >
+                      <Navigation className="w-4 h-4 text-brand-mint group-hover:scale-110 transition-transform" />
+                      <span>Cómo Llegar (Google Maps / GPS)</span>
+                    </button>
+                  </div>
+
+                  {/* Interactive Leaflet Mini-Map */}
+                  <div className="h-72 w-full rounded-2xl overflow-hidden border border-slate-200">
+                    <InteractiveVenueMap 
+                      venues={[selectedVenue]}
+                      defaultCenter={[selectedVenue.lat || 25.7654, selectedVenue.lng || -80.1912]}
+                      defaultZoom={15}
+                      showControls={true}
+                    />
+                  </div>
+                </div>
+
+                {/* Operating Hours Table */}
+                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-sm sm:text-base text-brand-carbon flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-brand-mint" />
+                      <span>Horario de Atención</span>
+                    </h4>
+                    <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-black">
+                      Abierto Hoy: {selectedVenue.hours || '9:00 AM - 8:00 PM'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                      <div className="font-bold text-slate-700">Lunes - Viernes</div>
+                      <div className="text-slate-500">{selectedVenue.hours || '9:00 AM - 8:00 PM'}</div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                      <div className="font-bold text-slate-700">Sábado</div>
+                      <div className="text-slate-500">9:00 AM - 9:00 PM</div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                      <div className="font-bold text-slate-700">Domingo</div>
+                      <div className="text-slate-500">10:00 AM - 6:00 PM</div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                      <div className="font-bold text-slate-700">Confirmación</div>
+                      <div className="text-brand-purple font-bold">Inmediata ⚡</div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             )}
 

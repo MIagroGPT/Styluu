@@ -1,9 +1,10 @@
 import React from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useApp } from '../../context/AppContext';
-import { Star, MapPin, Sparkles, Check, Clock, ChevronRight } from 'lucide-react';
+import { openDirections } from '../../lib/geoUtils';
+import { Star, MapPin, Sparkles, Check, Clock, ChevronRight, Navigation } from 'lucide-react';
 
-export const VenueCard = ({ venue }) => {
+export const VenueCard = ({ venue, isHovered = false, onMouseEnter = null, onMouseLeave = null }) => {
   const { language, t } = useLanguage();
   const { openBookingModal, setSelectedVenue, setCurrentView, formatMoney } = useApp();
 
@@ -17,10 +18,21 @@ export const VenueCard = ({ venue }) => {
     openBookingModal(venue);
   };
 
+  const handleDirectionsClick = (e) => {
+    e.stopPropagation();
+    openDirections(venue.lat, venue.lng, venue.address, venue.name);
+  };
+
   return (
     <div 
       onClick={handleCardClick}
-      className="group bg-white rounded-3xl border border-slate-200/80 hover:border-brand-purple/30 shadow-sm hover:shadow-brand-md transition-all duration-300 flex flex-col overflow-hidden cursor-pointer transform hover:-translate-y-1"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      className={`group bg-white rounded-3xl border transition-all duration-300 flex flex-col overflow-hidden cursor-pointer transform hover:-translate-y-1 ${
+        isHovered 
+          ? 'border-brand-purple shadow-brand-md ring-2 ring-brand-purple/20' 
+          : 'border-slate-200/80 hover:border-brand-purple/30 shadow-sm hover:shadow-brand-md'
+      }`}
     >
       {/* Top Image Container */}
       <div className="relative h-52 sm:h-56 w-full overflow-hidden bg-slate-100">
@@ -48,19 +60,27 @@ export const VenueCard = ({ venue }) => {
           <span className="text-xs font-black">{Number(venue.rating || 5.0).toFixed(1)}</span>
           <span className="text-[11px] text-slate-400 font-medium">({venue.reviewsCount ?? 0})</span>
         </div>
+
+        {/* Distance Pill if available */}
+        {venue.distance && (
+          <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1">
+            <MapPin className="w-3 h-3 text-brand-mint" />
+            <span>{venue.distance}</span>
+          </div>
+        )}
       </div>
 
       {/* Body Content */}
       <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
         <div>
-          {/* Category & Distance */}
+          {/* Category & Location */}
           <div className="flex items-center justify-between text-xs text-slate-400 mb-1 font-medium">
             <span className="text-brand-purple font-bold uppercase tracking-wider text-[11px]">
               {(venue.category || 'barber').toUpperCase()}
             </span>
-            <span className="flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-brand-mint" />
-              {venue.city || 'Bogotá'}
+            <span className="flex items-center gap-1 truncate max-w-[150px]">
+              <MapPin className="w-3.5 h-3.5 text-brand-mint shrink-0" />
+              <span className="truncate">{venue.address || venue.city || 'Miami, FL'}</span>
             </span>
           </div>
 
@@ -87,24 +107,34 @@ export const VenueCard = ({ venue }) => {
           )}
         </div>
 
-        {/* Footer Actions */}
-        <div className="pt-2 flex items-center justify-between gap-3">
+        {/* Footer Actions: Price + "Cómo llegar" + "Agendar" */}
+        <div className="pt-2 flex items-center justify-between gap-2 border-t border-slate-50">
           <div>
             <span className="text-[10px] text-slate-400 uppercase font-semibold block leading-none">
               {t('from_price')}
             </span>
-            <span className="font-display font-black text-lg text-brand-carbon leading-tight">
+            <span className="font-display font-black text-base sm:text-lg text-brand-carbon leading-tight">
               {formatMoney(venue.startingPrice)}
             </span>
           </div>
 
-          <button
-            onClick={handleBookClick}
-            className="px-4 py-2.5 rounded-xl bg-brand-purple hover:bg-brand-purple-dark text-white font-extrabold text-xs shadow-sm hover:shadow-brand-sm transition-all duration-200 flex items-center gap-1.5"
-          >
-            <span>{t('book_now')}</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={handleDirectionsClick}
+              className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-brand-purple transition-colors"
+              title="Cómo llegar con GPS (Google Maps)"
+            >
+              <Navigation className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={handleBookClick}
+              className="px-3.5 py-2.5 rounded-xl bg-brand-purple hover:bg-brand-purple-dark text-white font-extrabold text-xs shadow-sm hover:shadow-brand-sm transition-all duration-200 flex items-center gap-1"
+            >
+              <span>{t('book_now')}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
       </div>

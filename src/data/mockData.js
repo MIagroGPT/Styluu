@@ -166,7 +166,9 @@ export const VENUES = [
     reviewsCount: 428,
     city: 'Miami, FL',
     address: '840 Brickell Ave, Miami, FL 33131',
-    distance: '0.8 miles',
+    lat: 25.7654,
+    lng: -80.1912,
+    distance: '0.8 km',
     image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=900&q=80',
     images: [
       'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=900&q=80',
@@ -175,7 +177,7 @@ export const VENUES = [
     ],
     priceRange: '$$',
     featured: true,
-    badges: ['Top Rated 2026', 'Instant Booking', 'Styluu Verified'],
+    badges: ['Top Rated 2026', 'Instant Booking', 'Bublyme Verified'],
     startingPrice: 35,
     hours: '9:00 AM - 8:00 PM',
     services: [
@@ -234,9 +236,11 @@ export const VENUES = [
     category: 'hair-salon',
     rating: 5.0,
     reviewsCount: 610,
-    city: 'New York, NY',
-    address: '420 W Broadway, SoHo, New York, NY 10012',
-    distance: '1.2 miles',
+    city: 'Miami, FL',
+    address: '420 Biscayne Blvd, Downtown Miami, FL 33132',
+    lat: 25.7780,
+    lng: -80.1895,
+    distance: '1.4 km',
     image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=900&q=80',
     images: [
       'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=900&q=80',
@@ -287,9 +291,11 @@ export const VENUES = [
     category: 'spa',
     rating: 4.9,
     reviewsCount: 389,
-    city: 'Los Angeles, CA',
-    address: '9250 Wilshire Blvd, Beverly Hills, CA 90212',
-    distance: '2.5 miles',
+    city: 'Miami, FL',
+    address: '1200 S Miami Ave, Mary Brickell, Miami, FL 33130',
+    lat: 25.7610,
+    lng: -80.1935,
+    distance: '2.1 km',
     image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=900&q=80',
     images: [
       'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=900&q=80',
@@ -330,8 +336,10 @@ export const VENUES = [
     rating: 4.8,
     reviewsCount: 512,
     city: 'Miami, FL',
-    address: '250 NW 24th St, Wynwood, Miami, FL 33127',
-    distance: '1.7 miles',
+    address: '250 NW 24th St, Wynwood Arts District, Miami, FL 33127',
+    lat: 25.7995,
+    lng: -80.1990,
+    distance: '3.6 km',
     image: 'https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&w=900&q=80',
     images: [
       'https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&w=900&q=80'
@@ -360,6 +368,84 @@ export const VENUES = [
         price: 95,
         duration: 90,
         category: 'Uñas Esculpidas'
+      }
+    ]
+  },
+  {
+    id: 'venue-5',
+    name: 'Temple Barber Studio & Spa',
+    tagline: 'Experiencia Exclusiva de Barbería Tradicional & Cuidado Facial',
+    category: 'barber',
+    rating: 5.0,
+    reviewsCount: 335,
+    city: 'Miami, FL',
+    address: '1450 Coral Way, Coral Gables, Miami, FL 33145',
+    lat: 25.7530,
+    lng: -80.2120,
+    distance: '2.8 km',
+    image: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=900&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=900&q=80',
+      'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=900&q=80'
+    ],
+    priceRange: '$$$',
+    featured: true,
+    badges: ['Destacado', 'Top Rated 5.0'],
+    startingPrice: 50,
+    hours: '10:00 AM - 9:00 PM',
+    services: [
+      {
+        id: 'srv-501',
+        name: 'Master Haircut & Scalp Massage',
+        nameEn: 'Master Haircut & Scalp Massage',
+        description: 'Corte maestro con toalla caliente infusionada en mentol y masaje capilar estimulante.',
+        price: 55,
+        duration: 45,
+        popular: true,
+        category: 'Corte'
+      },
+      {
+        id: 'srv-502',
+        name: 'Afeitado Clásico con Navaja y Espuma Caliente',
+        nameEn: 'Traditional Hot Lather Shave',
+        description: 'Tres toallas calientes, aceites pre-afeitado y bálsamo calmante.',
+        price: 40,
+        duration: 35,
+        category: 'Barba'
+      }
+    ]
+  },
+  {
+    id: 'venue-6',
+    name: 'Nail Spa Jomare & Beauty Lounge',
+    tagline: 'Especialistas en Pedicura Spa, Acrílico Esculpido y Cejas HD',
+    category: 'nails',
+    rating: 4.9,
+    reviewsCount: 608,
+    city: 'Miami, FL',
+    address: '3400 Grand Ave, Coconut Grove, Miami, FL 33133',
+    lat: 25.7275,
+    lng: -80.2430,
+    distance: '4.2 km',
+    image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=900&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=900&q=80'
+    ],
+    priceRange: '$$',
+    featured: true,
+    badges: ['Destacado', 'Nail Art Master'],
+    startingPrice: 38,
+    hours: '9:00 AM - 8:00 PM',
+    services: [
+      {
+        id: 'srv-601',
+        name: 'Pedicura Spa Detox con Sales Marinas',
+        nameEn: 'Detox Spa Pedicure with Sea Salts',
+        description: 'Exfoliación con sales del mar muerto, mascarilla de arcilla y masaje con piedras calientes.',
+        price: 65,
+        duration: 50,
+        popular: true,
+        category: 'Pedicura'
       }
     ]
   }
