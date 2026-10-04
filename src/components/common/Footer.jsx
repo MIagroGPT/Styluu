@@ -24,13 +24,8 @@ export const Footer = () => {
           
           {/* Brand Info */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-purple to-brand-mint flex items-center justify-center font-display font-black text-xl text-white">
-                S
-              </div>
-              <span className="font-display font-black text-2xl tracking-tight text-white">
-                styluu<span className="text-brand-mint">.com</span>
-              </span>
+            <div onClick={() => setCurrentView('landing')} className="cursor-pointer">
+              <Logo variant="white" className="h-9" subtitle="Beauty & Barber OS" />
             </div>
             
             <p className="text-slate-400 text-sm max-w-sm leading-relaxed">
@@ -81,11 +76,11 @@ export const Footer = () => {
             </ul>
           </div>
 
-          {/* Column 2: Styluu for Business (SaaS) */}
+          {/* Column 2: Bublyme for Business (SaaS) */}
           <div className="space-y-3">
             <h4 className="font-bold text-sm text-brand-mint uppercase tracking-wider flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5" />
-              Styluu for Business
+              Bublyme for Business
             </h4>
             <ul className="space-y-2 text-sm text-slate-400">
               <li><button onClick={() => { setCurrentView('business-os'); setBusinessTab('calendar'); }} className="hover:text-white transition-colors flex items-center gap-1">Calendario Multi-Staff <ArrowUpRight className="w-3 h-3 text-slate-500" /></button></li>
@@ -120,14 +115,14 @@ export const Footer = () => {
         {/* Bottom bar */}
         <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400">
           <div>
-            © {new Date().getFullYear()} Styluu Inc. ({t('footer_rights')})
+            © {new Date().getFullYear()} Bublyme Inc. ({t('footer_rights')})
           </div>
           <div className="flex items-center gap-6">
             <a href="#" className="hover:text-slate-200 transition-colors">{t('footer_privacy')}</a>
             <a href="#" className="hover:text-slate-200 transition-colors">{t('footer_terms')}</a>
             <a href="#" className="hover:text-slate-200 transition-colors">{t('footer_cookies')}</a>
             <span className="text-slate-600">|</span>
-            <span className="text-brand-mint font-semibold">www.styluu.com</span>
+            <span className="text-brand-mint font-semibold">www.bublyme.com</span>
           </div>
         </div>
 

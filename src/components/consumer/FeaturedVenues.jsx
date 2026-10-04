@@ -31,7 +31,7 @@ export const FeaturedVenues = () => {
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-mint/20 text-teal-800 text-xs font-black uppercase tracking-wider">
               <Store className="w-3.5 h-3.5" />
-              Styluu Marketplace
+              Bublyme Marketplace
             </div>
             <h2 className="font-display font-black text-3xl sm:text-4xl text-brand-carbon tracking-tight">
               {t('featured_title')}

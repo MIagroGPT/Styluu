@@ -111,7 +111,7 @@ export const BusinessPromoSection = () => {
                 <div className="w-3 h-3 rounded-full bg-green-500/80" />
               </div>
               <span className="text-xs font-mono text-slate-400 pl-2">
-                styluu.com/business-os/calendar
+                bublyme.com/business-os/calendar
               </span>
             </div>
 

@@ -118,7 +118,7 @@ export const ClientPortal = () => {
                 Diego Ramirez
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 font-medium">
-                diego.ramirez@mail.com • Miembro Styluu VIP
+                diego.ramirez@mail.com • Miembro Bublyme VIP
               </p>
               <div className="flex items-center gap-2 mt-2">
                 <span className="px-2.5 py-0.5 rounded-full bg-brand-purple/10 text-brand-purple text-[10px] font-extrabold uppercase">

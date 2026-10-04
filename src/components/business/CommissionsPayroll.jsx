@@ -1128,7 +1128,7 @@ export const CommissionsPayroll = () => {
               
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div>
-                  <span className="text-[10px] text-brand-purple font-black uppercase tracking-wider">Styluu Payroll</span>
+                  <span className="text-[10px] text-brand-purple font-black uppercase tracking-wider">Bublyme Payroll</span>
                   <h3 className="font-display font-black text-xl text-brand-carbon">Comprobante de Liquidación</h3>
                 </div>
                 <button onClick={() => setViewingSettlementReceipt(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400">

@@ -6,7 +6,7 @@ const translations = {
     nav_home: 'Inicio',
     nav_explore: 'Explorar',
     nav_business: 'Para Negocios (SaaS)',
-    nav_for_business_sub: 'Styluu for Business',
+    nav_for_business_sub: 'Bublyme for Business',
     nav_my_bookings: 'Mis Citas',
     nav_login: 'Iniciar Sesión',
     nav_register: 'Registrarse',
@@ -59,9 +59,9 @@ const translations = {
     distance: 'a',
 
     // Business pitch (Fresha style)
-    biz_pitch_badge: 'STYLUU FOR BUSINESS',
+    biz_pitch_badge: 'BUBLYME FOR BUSINESS',
     biz_pitch_title: 'El software de gestión todo-en-uno que revoluciona tu salón',
-    biz_pitch_subtitle: 'Todo lo que necesitas para crecer y triunfar. Styluu incluye las herramientas clave para multiplicar tus reservas, gestionar tu equipo y fidelizar clientes.',
+    biz_pitch_subtitle: 'Todo lo que necesitas para crecer y triunfar. Bublyme incluye las herramientas clave para multiplicar tus reservas, gestionar tu equipo y fidelizar clientes.',
     biz_feat_1_title: 'Calendario Inteligente Multi-Staff',
     biz_feat_1_desc: 'Controla citas en tiempo real, bloquea horarios y asigna clientes con vista diaria, semanal y por especialista.',
     biz_feat_2_title: 'Punto de Venta (POS) & Pagos',
@@ -103,7 +103,7 @@ const translations = {
     booking_view_my_bookings: 'Ver mis citas',
     booking_new_booking: 'Hacer otra reserva',
 
-    // Styluu Business OS
+    // Bublyme Business OS
     bos_dashboard: 'Dashboard',
     bos_calendar: 'Calendario',
     bos_appointments: 'Citas',
@@ -128,7 +128,7 @@ const translations = {
     bos_status_no_show: 'No Asistió',
 
     // POS
-    pos_title: 'Punto de Venta Styluu POS',
+    pos_title: 'Punto de Venta Bublyme POS',
     pos_client: 'Cliente',
     pos_services_performed: 'Servicios Realizados',
     pos_add_product: 'Añadir Producto',
@@ -141,7 +141,7 @@ const translations = {
 
     // Footer
     footer_tagline: 'La plataforma definitiva de reservas de belleza y software para profesionales.',
-    footer_rights: 'Todos los derechos reservados. Styluu Inc. www.styluu.com',
+    footer_rights: 'Todos los derechos reservados. Bublyme Inc. www.bublyme.com',
     footer_company: 'Empresa',
     footer_for_business: 'Para Negocios',
     footer_legal: 'Legal',
@@ -154,7 +154,7 @@ const translations = {
     nav_home: 'Home',
     nav_explore: 'Explore',
     nav_business: 'For Business (SaaS)',
-    nav_for_business_sub: 'Styluu for Business',
+    nav_for_business_sub: 'Bublyme for Business',
     nav_my_bookings: 'My Appointments',
     nav_login: 'Log In',
     nav_register: 'Sign Up',
@@ -207,9 +207,9 @@ const translations = {
     distance: 'away',
 
     // Business pitch (Fresha style)
-    biz_pitch_badge: 'STYLUU FOR BUSINESS',
+    biz_pitch_badge: 'BUBLYME FOR BUSINESS',
     biz_pitch_title: 'The all-in-one management software powering the modern salon',
-    biz_pitch_subtitle: 'Everything you need to thrive. Styluu includes key tools to boost sales, manage multi-staff schedules, and retain clients seamlessly.',
+    biz_pitch_subtitle: 'Everything you need to thrive. Bublyme includes key tools to boost sales, manage multi-staff schedules, and retain clients seamlessly.',
     biz_feat_1_title: 'Smart Multi-Staff Calendar',
     biz_feat_1_desc: 'Real-time booking matrix, block time slots, and assign clients with daily, weekly, and specialist columns.',
     biz_feat_2_title: 'Point of Sale (POS) & Payments',
@@ -251,7 +251,7 @@ const translations = {
     booking_view_my_bookings: 'View my bookings',
     booking_new_booking: 'Book another service',
 
-    // Styluu Business OS
+    // Bublyme Business OS
     bos_dashboard: 'Dashboard',
     bos_calendar: 'Calendar',
     bos_appointments: 'Appointments',
@@ -276,7 +276,7 @@ const translations = {
     bos_status_no_show: 'No Show',
 
     // POS
-    pos_title: 'Styluu POS Register',
+    pos_title: 'Bublyme POS Register',
     pos_client: 'Client',
     pos_services_performed: 'Services Rendered',
     pos_add_product: 'Add Retail Product',
@@ -289,7 +289,7 @@ const translations = {
 
     // Footer
     footer_tagline: 'The premier beauty & wellness marketplace and salon operating system.',
-    footer_rights: 'All rights reserved. Styluu Inc. www.styluu.com',
+    footer_rights: 'All rights reserved. Bublyme Inc. www.bublyme.com',
     footer_company: 'Company',
     footer_for_business: 'For Business',
     footer_legal: 'Legal',

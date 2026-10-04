@@ -64,7 +64,7 @@ export const VenueProfileEditor = () => {
   // Images
   const [mainImage, setMainImage] = useState(currentVenue?.image || '');
   const [galleryImages, setGalleryImages] = useState(currentVenue?.images || [currentVenue?.image]);
-  const [badges, setBadges] = useState(currentVenue?.badges || ['Top Rated 2026', 'Styluu Verified']);
+  const [badges, setBadges] = useState(currentVenue?.badges || ['Top Rated 2026', 'Bublyme Verified']);
   const [newBadgeText, setNewBadgeText] = useState('');
   const [newImageUrl, setNewImageUrl] = useState('');
 
@@ -336,7 +336,7 @@ export const VenueProfileEditor = () => {
             Editor de Perfil de Negocio & Marketplace
           </h2>
           <p className="text-xs text-slate-500">
-            Personaliza el nombre de tu salón, fotos, ubicación, horarios y lo que ven tus clientes en www.styluu.com.
+            Personaliza el nombre de tu salón, fotos, ubicación, horarios y lo que ven tus clientes en www.bublyme.com.
           </p>
         </div>
 

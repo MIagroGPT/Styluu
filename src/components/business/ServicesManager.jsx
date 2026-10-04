@@ -171,7 +171,7 @@ export const ServicesManager = () => {
             Catálogo de Servicios & Precios
           </h2>
           <p className="text-xs text-slate-500">
-            Define la duración, precios y categorías visibles en tu perfil de Styluu y citas.
+            Define la duración, precios y categorías visibles en tu perfil de Bublyme y citas.
           </p>
         </div>
 

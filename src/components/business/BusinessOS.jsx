@@ -12,6 +12,7 @@ import { AppointmentDetailModal } from './AppointmentDetailModal';
 import { POSCheckoutModal } from './POSCheckoutModal';
 import { VenueProfileEditor } from './VenueProfileEditor';
 import { ProductsInventoryManager } from './ProductsInventoryManager';
+import { Logo } from '../common/Logo';
 import { 
   Calendar, 
   Users, 
@@ -100,23 +101,13 @@ export const BusinessOS = () => {
         {/* Top Brand & Salon Title */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-brand-purple to-brand-mint flex items-center justify-center font-display font-black text-xl text-white">
-                S
-              </div>
-              <div>
-                <span className="font-display font-black text-xl tracking-tight text-white block leading-none">
-                  styluu
-                </span>
-                <span className="text-[10px] text-brand-mint font-bold uppercase tracking-widest leading-none mt-0.5 block">
-                  Business OS
-                </span>
-              </div>
+            <div onClick={() => setCurrentView('landing')} className="cursor-pointer">
+              <Logo variant="white" className="h-8" subtitle="Business OS" />
             </div>
 
             <button
               onClick={() => setCurrentView('landing')}
-              className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white text-xs"
+              className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white text-xs transition-colors"
               title="Volver a la Web"
             >
               <ExternalLink className="w-4 h-4" />
@@ -246,7 +237,7 @@ export const BusinessOS = () => {
             className="w-full py-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-semibold flex items-center justify-center gap-2"
           >
             <Store className="w-3.5 h-3.5" />
-            <span>Ver mi salón en Styluu</span>
+            <span>Ver mi salón en Bublyme</span>
           </button>
         </div>
 

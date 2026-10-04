@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
+import { Logo } from '../common/Logo';
 import {
   ShieldCheck,
   Store,
@@ -150,7 +151,7 @@ export const SuperAdminDashboard = () => {
       alert('Debe existir al menos un establecimiento en la plataforma.');
       return;
     }
-    if (window.confirm(`¿Estás seguro de que deseas eliminar "${venueName}" del directorio de Styluu?`)) {
+    if (window.confirm(`¿Estás seguro de que deseas eliminar "${venueName}" del directorio de Bublyme?`)) {
       await deleteVenue(venueId);
     }
   };
@@ -161,7 +162,7 @@ export const SuperAdminDashboard = () => {
 
     await createVenue({
       name: name.trim(),
-      tagline: tagline.trim() || 'Establecimiento afiliado a Styluu',
+      tagline: tagline.trim() || 'Establecimiento afiliado a Bublyme',
       category,
       city: city.trim() || 'Bogotá, Colombia',
       address: address.trim() || 'Calle Principal',
@@ -203,7 +204,7 @@ export const SuperAdminDashboard = () => {
                 Super Admin Maestro
               </h1>
               <p className="text-xs text-slate-400 mt-1">
-                Ingresa tu clave maestra de propietario de Styluu para gestionar los establecimientos y métricas globales.
+                Ingresa tu clave maestra de propietario de Bublyme para gestionar los establecimientos y métricas globales.
               </p>
             </div>
           </div>
@@ -265,20 +266,12 @@ export const SuperAdminDashboard = () => {
       <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 px-4 sm:px-8 py-4">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-purple to-brand-mint flex items-center justify-center text-white shadow-lg shadow-brand-purple/20">
-              <ShieldCheck className="w-5 h-5 text-white" />
+            <div onClick={() => setCurrentView('landing')} className="cursor-pointer">
+              <Logo variant="white" className="h-8" subtitle="Super Admin" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-display font-black text-xl text-white tracking-tight">Styluu</span>
-                <span className="px-2 py-0.5 rounded-full bg-brand-purple/20 text-brand-mint border border-brand-mint/30 text-[10px] font-black uppercase tracking-wider">
-                  Super Admin Maestro
-                </span>
-              </div>
-              <p className="text-xs text-slate-400">
-                Panel Global de Plataforma & Red Multi-Establecimientos
-              </p>
-            </div>
+            <p className="hidden md:block text-xs text-slate-400 pl-2 border-l border-slate-700">
+              Panel Global de Plataforma & Red Multi-Establecimientos
+            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
@@ -396,7 +389,7 @@ export const SuperAdminDashboard = () => {
                 Directorio Maestro de Establecimientos
               </h2>
               <p className="text-xs text-slate-400">
-                Visualiza, accede y administra cualquiera de los comercios afiliados a Styluu
+                Visualiza, accede y administra cualquiera de los comercios afiliados a Bublyme
               </p>
             </div>
 
@@ -565,7 +558,7 @@ export const SuperAdminDashboard = () => {
                     Registrar Nuevo Establecimiento
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Agrega un nuevo salón, barbería o spa a la red Styluu
+                    Agrega un nuevo salón, barbería o spa a la red Bublyme
                   </p>
                 </div>
               </div>

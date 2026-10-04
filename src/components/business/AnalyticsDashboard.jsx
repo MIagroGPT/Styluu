@@ -327,7 +327,7 @@ export const AnalyticsDashboard = () => {
               <span className="px-3 py-1 rounded-full bg-brand-purple/10 text-brand-purple text-xs font-black uppercase tracking-wider">
                 Módulo Financiero Real
               </span>
-              <span className="text-xs text-slate-400 font-medium">Styluu Financial Analytics</span>
+              <span className="text-xs text-slate-400 font-medium">Bublyme Financial Analytics</span>
             </div>
             <h2 className="font-display font-black text-2xl sm:text-3xl text-brand-carbon tracking-tight mt-1">
               Reportes Financieros & Cierre de Caja

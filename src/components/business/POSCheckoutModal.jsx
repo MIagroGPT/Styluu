@@ -85,7 +85,7 @@ export const POSCheckoutModal = ({ appointment, isOpen, onClose }) => {
             </div>
             <div>
               <h3 className="font-display font-black text-lg text-brand-carbon">
-                Punto de Venta — Styluu POS
+                Punto de Venta — Bublyme POS
               </h3>
               <div className="text-xs text-slate-400">
                 Cliente: <span className="font-bold text-slate-700">{appointment.clientName}</span>

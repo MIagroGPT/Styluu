@@ -52,7 +52,7 @@ class ErrorBoundary extends React.Component {
             <div className="w-14 h-14 mx-auto rounded-2xl bg-brand-purple/20 text-brand-purple flex items-center justify-center font-bold text-2xl border border-brand-purple/30">
               ✨
             </div>
-            <h2 className="text-xl font-black text-white">Styluu Platform</h2>
+            <h2 className="text-xl font-black text-white">Bublyme Platform</h2>
             <p className="text-xs text-slate-400">
               Se ha detectado un cambio de datos o estado incompatible en la sesión.
             </p>
