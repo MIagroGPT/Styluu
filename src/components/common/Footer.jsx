@@ -83,6 +83,7 @@ export const Footer = () => {
               Bublyme for Business
             </h4>
             <ul className="space-y-2 text-sm text-slate-400">
+              <li><button onClick={() => setCurrentView('pricing')} className="hover:text-brand-mint text-white font-bold transition-colors flex items-center gap-1">⭐ Planes & Precios SaaS <ArrowUpRight className="w-3 h-3 text-brand-mint" /></button></li>
               <li><button onClick={() => navigateToBiz('calendar')} className="hover:text-white transition-colors flex items-center gap-1">Calendario Multi-Staff <ArrowUpRight className="w-3 h-3 text-slate-500" /></button></li>
               <li><button onClick={() => navigateToBiz('pos')} className="hover:text-white transition-colors flex items-center gap-1">Punto de Venta POS <ArrowUpRight className="w-3 h-3 text-slate-500" /></button></li>
               <li><button onClick={() => navigateToBiz('clients')} className="hover:text-white transition-colors flex items-center gap-1">CRM & Fidelización <ArrowUpRight className="w-3 h-3 text-slate-500" /></button></li>

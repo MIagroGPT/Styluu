@@ -77,6 +77,26 @@ export const Navbar = () => {
             </button>
 
             <button
+              onClick={() => {
+                if (currentView === 'landing') {
+                  const el = document.getElementById('planes');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  else setCurrentView('pricing');
+                } else {
+                  setCurrentView('pricing');
+                }
+              }}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all ${
+                currentView === 'pricing'
+                  ? 'bg-white text-brand-carbon shadow-sm'
+                  : 'text-slate-600 hover:text-brand-carbon'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-brand-purple" />
+              <span>Planes</span>
+            </button>
+
+            <button
               onClick={() => navigateToApp()}
               className={`relative flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all ${
                 currentView === 'my-bookings'
@@ -220,6 +240,28 @@ export const Navbar = () => {
               {t('nav_explore')}
             </button>
           </div>
+
+          <button
+            onClick={() => {
+              if (currentView === 'landing') {
+                const el = document.getElementById('planes');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                else setCurrentView('pricing');
+              } else {
+                setCurrentView('pricing');
+              }
+              setIsMobileMenuOpen(false);
+            }}
+            className="w-full p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 font-bold text-sm flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-brand-purple" />
+              <span>Planes & Precios</span>
+            </div>
+            <span className="bg-brand-mint text-brand-carbon text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+              7 Días Gratis
+            </span>
+          </button>
 
           <button
             onClick={() => { navigateToApp(); setIsMobileMenuOpen(false); }}
