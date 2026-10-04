@@ -15,6 +15,7 @@ import { BookingFlowModal } from './components/booking/BookingFlowModal';
 import { ClientPortal } from './components/client/ClientPortal';
 import { BusinessOS } from './components/business/BusinessOS';
 import { SuperAdminDashboard } from './components/admin/SuperAdminDashboard';
+import { AuthModal } from './components/auth/AuthModal';
 import { Sparkles, ArrowRight, ShieldCheck, Check } from 'lucide-react';
 
 class ErrorBoundary extends React.Component {
@@ -163,6 +164,7 @@ const MainContent = () => {
 
       {/* Universal Modal and Toasts */}
       <BookingFlowModal />
+      <AuthModal />
       <NotificationToast />
 
       {/* Universal Footer */}

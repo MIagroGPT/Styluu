@@ -17,7 +17,7 @@ import {
 
 export const BusinessPromoSection = () => {
   const { t } = useLanguage();
-  const { setCurrentView, setBusinessTab, navigateToBiz } = useApp();
+  const { setCurrentView, setBusinessTab, navigateToBiz, openAuthModal } = useApp();
   const [activeFeatureTab, setActiveFeatureTab] = useState(0);
 
   const features = [
@@ -76,7 +76,7 @@ export const BusinessPromoSection = () => {
 
           <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
             <button
-              onClick={() => navigateToBiz('calendar')}
+              onClick={() => openAuthModal('register', 'partner', 'staff')}
               className="px-7 py-3.5 rounded-2xl bg-brand-purple hover:bg-brand-purple-dark text-white font-black text-sm sm:text-base shadow-lg hover:shadow-purple-glow transition-all flex items-center gap-2 group"
             >
               <span>{t('biz_cta_btn')}</span>

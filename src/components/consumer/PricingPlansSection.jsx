@@ -24,7 +24,7 @@ import {
 
 export const PricingPlansSection = () => {
   const { t } = useLanguage();
-  const { currentCurrency, navigateToBiz, formatMoney } = useApp();
+  const { currentCurrency, navigateToBiz, formatMoney, openAuthModal } = useApp();
   const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' | 'yearly'
   const [selectedPlanId, setSelectedPlanId] = useState('staff');
 
@@ -349,7 +349,7 @@ export const PricingPlansSection = () => {
                 {/* Card CTA Button */}
                 <div className="pt-4 border-t border-slate-100">
                   <button
-                    onClick={() => navigateToBiz('calendar')}
+                    onClick={() => openAuthModal('register', 'partner', plan.id)}
                     className={`w-full py-4 px-6 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all ${plan.buttonBg}`}
                   >
                     <span>Comienza ahora (7 días gratis)</span>

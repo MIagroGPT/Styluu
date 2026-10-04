@@ -228,6 +228,79 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // ── Unified Authentication State ──────────────────────────────────────────
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('bublyme_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState('login'); // 'login' | 'register'
+  const [authRole, setAuthRole] = useState('client'); // 'client' | 'partner'
+  const [selectedPlanForRegistration, setSelectedPlanForRegistration] = useState('staff');
+
+  const openAuthModal = useCallback((mode = 'login', role = 'client', plan = 'staff') => {
+    setAuthModalMode(mode);
+    setAuthRole(role);
+    setSelectedPlanForRegistration(plan);
+    setIsAuthModalOpen(true);
+  }, []);
+
+  const closeAuthModal = useCallback(() => {
+    setIsAuthModalOpen(false);
+  }, []);
+
+  const login = useCallback((userData) => {
+    const user = {
+      ...userData,
+      lastLogin: new Date().toISOString()
+    };
+    setCurrentUser(user);
+    try {
+      localStorage.setItem('bublyme_user', JSON.stringify(user));
+    } catch {}
+  }, []);
+
+  const registerUser = useCallback((userData) => {
+    const newUser = {
+      ...userData,
+      createdAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString()
+    };
+    setCurrentUser(newUser);
+    try {
+      localStorage.setItem('bublyme_user', JSON.stringify(newUser));
+    } catch {}
+
+    if (userData.role === 'partner' && userData.businessName) {
+      const newVenueId = `venue-${Date.now()}`;
+      const newVenueObj = {
+        id: newVenueId,
+        name: userData.businessName,
+        category: userData.category || 'barber',
+        address: userData.address || userData.city || 'Ubicación registrada',
+        rating: 5.0,
+        reviewsCount: 1,
+        image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80',
+        plan: userData.plan || 'staff',
+        trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      };
+      setVenues(prev => [newVenueObj, ...prev]);
+      setActiveVenueId(newVenueId);
+    }
+  }, []);
+
+  const logout = useCallback(() => {
+    setCurrentUser(null);
+    try {
+      localStorage.removeItem('bublyme_user');
+    } catch {}
+    setToast({ message: 'Has cerrado sesión correctamente', type: 'info' });
+  }, []);
+
   // Persist view so page reload returns to the same section, and sync with browser URL
   useEffect(() => {
     try {
@@ -1090,6 +1163,21 @@ export const AppProvider = ({ children }) => {
       navigateToBiz,
       navigateToApp,
       navigateToAdmin,
+      // Authentication State & Handlers
+      currentUser,
+      isAuthenticated: !!currentUser,
+      isAuthModalOpen,
+      authModalMode,
+      setAuthModalMode,
+      authRole,
+      setAuthRole,
+      selectedPlanForRegistration,
+      setSelectedPlanForRegistration,
+      openAuthModal,
+      closeAuthModal,
+      login,
+      registerUser,
+      logout,
       // UI
       currentView, setCurrentView,
       businessTab, setBusinessTab,
