@@ -10,6 +10,7 @@ import { FeaturedVenues } from './components/consumer/FeaturedVenues';
 import { BusinessPromoSection } from './components/consumer/BusinessPromoSection';
 import { VenueDetailView } from './components/consumer/VenueDetailView';
 import { PricingPlansSection } from './components/consumer/PricingPlansSection';
+import { AppDownloadSection } from './components/consumer/AppDownloadSection';
 import { BookingFlowModal } from './components/booking/BookingFlowModal';
 import { ClientPortal } from './components/client/ClientPortal';
 import { BusinessOS } from './components/business/BusinessOS';
@@ -113,7 +114,7 @@ const MainContent = () => {
     );
   }
 
-  const isKnownView = ['landing', 'explore', 'pricing', 'venue-detail', 'my-bookings'].includes(currentView);
+  const isKnownView = ['landing', 'explore', 'pricing', 'download-app', 'venue-detail', 'my-bookings'].includes(currentView);
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-soft-canvas text-brand-carbon font-sans selection:bg-brand-purple selection:text-white">
@@ -129,12 +130,19 @@ const MainContent = () => {
             <FeaturedVenues />
             <BusinessPromoSection />
             <PricingPlansSection />
+            <AppDownloadSection />
           </>
         )}
 
         {currentView === 'pricing' && (
           <div className="py-4">
             <PricingPlansSection />
+          </div>
+        )}
+
+        {currentView === 'download-app' && (
+          <div className="py-4">
+            <AppDownloadSection />
           </div>
         )}
 

@@ -97,6 +97,26 @@ export const Navbar = () => {
             </button>
 
             <button
+              onClick={() => {
+                if (currentView === 'landing') {
+                  const el = document.getElementById('descargar-app');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  else setCurrentView('download-app');
+                } else {
+                  setCurrentView('download-app');
+                }
+              }}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all ${
+                currentView === 'download-app'
+                  ? 'bg-white text-brand-carbon shadow-sm'
+                  : 'text-slate-600 hover:text-brand-carbon'
+              }`}
+            >
+              <Smartphone className="w-3.5 h-3.5 text-brand-mint" />
+              <span>Apps</span>
+            </button>
+
+            <button
               onClick={() => navigateToApp()}
               className={`relative flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all ${
                 currentView === 'my-bookings'

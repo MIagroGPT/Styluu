@@ -101,8 +101,15 @@ export const Footer = () => {
               Lleva tus citas en el bolsillo o gestiona tu negocio desde cualquier lugar.
             </p>
             <div className="space-y-2 pt-1">
-              <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center gap-3 hover:border-brand-mint/50 transition-all cursor-pointer">
-                <Smartphone className="w-5 h-5 text-brand-mint" />
+              <div 
+                onClick={() => {
+                  const el = document.getElementById('descargar-app');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  else setCurrentView('download-app');
+                }}
+                className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center gap-3 hover:border-brand-mint/50 transition-all cursor-pointer group"
+              >
+                <Smartphone className="w-5 h-5 text-brand-mint group-hover:scale-110 transition-transform" />
                 <div className="text-left">
                   <div className="text-[10px] text-slate-400 uppercase">Disponible en</div>
                   <div className="text-xs font-bold text-white">App Store & Google Play</div>

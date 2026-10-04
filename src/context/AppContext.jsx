@@ -113,13 +113,16 @@ export const AppProvider = ({ children }) => {
       if (path.includes('/planes') || path.includes('/pricing') || path.includes('/precios') || hash.includes('planes')) {
         return 'pricing';
       }
+      if (path.includes('/descargar') || path.includes('/descargar-app') || hash.includes('descarga') || hash.includes('app-download')) {
+        return 'download-app';
+      }
       if (path.includes('/explore') || hash.includes('explore')) {
         return 'explore';
       }
 
       // 3. Fallback to storage or landing
       const saved = localStorage.getItem('styluu_view');
-      const valid = ['landing', 'explore', 'pricing', 'venue-detail', 'my-bookings', 'business-os', 'super-admin'];
+      const valid = ['landing', 'explore', 'pricing', 'download-app', 'venue-detail', 'my-bookings', 'business-os', 'super-admin'];
       return valid.includes(saved) ? saved : 'landing';
     } catch {
       return 'landing';
@@ -241,6 +244,7 @@ export const AppProvider = ({ children }) => {
         'business-os': '/business',
         'my-bookings': '/mis-citas',
         'pricing': '/planes',
+        'download-app': '/descargar-app',
         'explore': '/explore',
         'landing': '/'
       };
