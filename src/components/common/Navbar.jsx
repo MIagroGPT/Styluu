@@ -3,10 +3,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useApp } from '../../context/AppContext';
 import { Logo } from './Logo';
 import { 
-  Search, 
   Globe, 
   Calendar, 
-  Briefcase, 
   Sparkles, 
   User, 
   Menu, 
@@ -15,11 +13,8 @@ import {
   LayoutDashboard,
   Store,
   Compass,
-  ShieldCheck,
   Smartphone,
-  LogOut,
-  Scissors,
-  CheckCircle2
+  LogOut
 } from 'lucide-react';
 
 export const Navbar = () => {
@@ -28,8 +23,6 @@ export const Navbar = () => {
     currentView, 
     setCurrentView, 
     clientBookings, 
-    searchQuery, 
-    setSearchQuery,
     selectedCountry,
     setBusinessCountry,
     currencies,
@@ -66,15 +59,16 @@ export const Navbar = () => {
   }, []);
 
   const activeBookingsCount = (Array.isArray(clientBookings) ? clientBookings : []).filter(b => b && b.status === 'confirmed').length;
+  const showMyBookingsNav = domainInfo?.isAppSubdomain || currentView === 'my-bookings';
 
   return (
     <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-sm transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           
-          {/* Brand Logo */}
-          <div onClick={() => navigateToMain()} className="flex items-center cursor-pointer">
-            <Logo />
+          {/* Brand Logo - 15% larger and clean spacing */}
+          <div onClick={() => navigateToMain()} className="flex items-center cursor-pointer pr-2 sm:pr-4 shrink-0">
+            <Logo className="h-10 sm:h-12" />
           </div>
 
           {/* Center Navigation Links for Desktop */}
@@ -143,25 +137,28 @@ export const Navbar = () => {
               <span>Apps</span>
             </button>
 
-            <button
-              onClick={() => navigateToApp()}
-              className={`relative flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all ${
-                currentView === 'my-bookings'
-                  ? 'bg-white text-brand-carbon shadow-sm'
-                  : 'text-slate-600 hover:text-brand-carbon'
-              }`}
-            >
-              <Calendar className="w-4 h-4 text-brand-purple" />
-              {t('nav_my_bookings')}
-              {activeBookingsCount > 0 && (
-                <span className="w-5 h-5 bg-brand-purple text-white rounded-full text-[10px] font-bold flex items-center justify-center">
-                  {activeBookingsCount}
-                </span>
-              )}
-            </button>
+            {/* "Mis Citas" is only visible inside app.bublyme.com or my-bookings view */}
+            {showMyBookingsNav && (
+              <button
+                onClick={() => navigateToApp()}
+                className={`relative flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all ${
+                  currentView === 'my-bookings'
+                    ? 'bg-white text-brand-carbon shadow-sm'
+                    : 'text-slate-600 hover:text-brand-carbon'
+                }`}
+              >
+                <Calendar className="w-4 h-4 text-brand-purple" />
+                {t('nav_my_bookings')}
+                {activeBookingsCount > 0 && (
+                  <span className="w-5 h-5 bg-brand-purple text-white rounded-full text-[10px] font-bold flex items-center justify-center">
+                    {activeBookingsCount}
+                  </span>
+                )}
+              </button>
+            )}
           </nav>
 
-          {/* Right Controls: Currency, Language & Auth / Business OS */}
+          {/* Right Controls: Currency, Language & Clean User Auth */}
           <div className="hidden lg:flex items-center gap-2.5">
             
             {/* Multi-Currency / Country Selector Dropdown */}
@@ -213,34 +210,6 @@ export const Navbar = () => {
               <span>{language.toUpperCase()}</span>
             </button>
 
-            {/* Business OS Access Button */}
-            {currentView === 'business-os' ? (
-              <button
-                onClick={() => navigateToMain()}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-all"
-              >
-                <Compass className="w-4 h-4 text-brand-purple" />
-                {t('nav_switch_to_client')}
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  if (isAuthenticated && currentUser?.role === 'partner') {
-                    navigateToBiz();
-                  } else {
-                    openAuthModal('register', 'partner', 'staff');
-                  }
-                }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-carbon to-[#1E252B] hover:from-black hover:to-brand-carbon text-white text-xs font-bold shadow-md hover:shadow-lg transition-all group"
-              >
-                <LayoutDashboard className="w-4 h-4 text-brand-mint group-hover:rotate-12 transition-transform" />
-                <span>{t('nav_business')}</span>
-                <span className="bg-brand-purple/40 text-brand-mint text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-extrabold border border-brand-mint/30">
-                  BOOKEA
-                </span>
-              </button>
-            )}
-
             {/* Unified User Profile & Authentication Controls */}
             {isAuthenticated && currentUser ? (
               <div className="relative" ref={userMenuRef}>
@@ -252,11 +221,11 @@ export const Navbar = () => {
                     {currentUser.name ? currentUser.name.charAt(0) : <User className="w-4 h-4" />}
                   </div>
                   <div className="text-left hidden xl:block">
-                    <div className="text-xs font-bold text-slate-800 leading-tight max-w-[100px] truncate">
+                    <div className="text-xs font-bold text-slate-800 leading-tight max-w-[110px] truncate">
                       {currentUser.name}
                     </div>
                     <div className="text-[10px] text-brand-purple font-extrabold capitalize">
-                      {currentUser.role === 'partner' ? 'Negocio' : 'Cliente VIP'}
+                      {currentUser.role === 'partner' ? 'Socio Negocio' : 'Cliente VIP'}
                     </div>
                   </div>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
@@ -479,43 +448,46 @@ export const Navbar = () => {
             </span>
           </button>
 
-          <button
-            onClick={() => { navigateToApp(); setIsMobileMenuOpen(false); }}
-            className="w-full p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 font-bold text-sm flex items-center justify-between"
-          >
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-brand-purple" />
-              <span>{t('nav_my_bookings')}</span>
-            </div>
-            {activeBookingsCount > 0 && (
-              <span className="bg-brand-purple text-white px-2 py-0.5 rounded-full text-xs font-bold">
-                {activeBookingsCount}
-              </span>
-            )}
-          </button>
+          {/* If user is logged in or inside app subdomain, show bookings in mobile drawer */}
+          {(showMyBookingsNav || isAuthenticated) && (
+            <button
+              onClick={() => { navigateToApp(); setIsMobileMenuOpen(false); }}
+              className="w-full p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 font-bold text-sm flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-brand-purple" />
+                <span>{t('nav_my_bookings')}</span>
+              </div>
+              {activeBookingsCount > 0 && (
+                <span className="bg-brand-purple text-white px-2 py-0.5 rounded-full text-xs font-bold">
+                  {activeBookingsCount}
+                </span>
+              )}
+            </button>
+          )}
 
-          <button
-            onClick={() => { 
-              if (isAuthenticated && currentUser?.role === 'partner') {
+          {/* If partner logged in, show quick shortcut to Business OS in mobile drawer */}
+          {isAuthenticated && currentUser?.role === 'partner' && (
+            <button
+              onClick={() => { 
                 navigateToBiz();
-              } else {
-                openAuthModal('register', 'partner', 'staff');
-              }
-              setIsMobileMenuOpen(false); 
-            }}
-            className="w-full p-3.5 rounded-xl bg-gradient-to-r from-brand-carbon to-[#1E252B] text-white font-bold text-sm flex items-center justify-between shadow-lg"
-          >
-            <div className="flex items-center gap-2">
-              <LayoutDashboard className="w-4 h-4 text-brand-mint" />
-              <span>{t('nav_business')}</span>
-            </div>
-            <span className="bg-brand-mint text-brand-carbon text-[11px] font-black px-2.5 py-0.5 rounded-md">
-              BOOKEA
-            </span>
-          </button>
+                setIsMobileMenuOpen(false); 
+              }}
+              className="w-full p-3.5 rounded-xl bg-gradient-to-r from-brand-carbon to-[#1E252B] text-white font-bold text-sm flex items-center justify-between shadow-lg"
+            >
+              <div className="flex items-center gap-2">
+                <LayoutDashboard className="w-4 h-4 text-brand-mint" />
+                <span>Panel Business OS</span>
+              </div>
+              <span className="bg-brand-mint text-brand-carbon text-[11px] font-black px-2.5 py-0.5 rounded-md">
+                GESTIONAR
+              </span>
+            </button>
+          )}
         </div>
       )}
     </header>
   );
 };
 
+export default Navbar;
