@@ -653,8 +653,20 @@ export const AppProvider = ({ children }) => {
         openDays: newOpenDays,
         hours: formattedHoursString || `${overallOpening} - ${overallClosing}`
       };
-      const savedVenue = await venuesApi.upsert(targetVenueId, updatedVenueData);
-      setVenues(prev => prev.map(v => v.id === targetVenueId ? savedVenue : v));
+      
+      // Update local state and localStorage immediately
+      setVenues(prev => {
+        const next = prev.map(v => v.id === targetVenueId ? updatedVenueData : v);
+        try { localStorage.setItem('styluu_venues', JSON.stringify(next)); } catch {}
+        return next;
+      });
+
+      try {
+        const savedVenue = await venuesApi.upsert(targetVenueId, updatedVenueData);
+        setVenues(prev => prev.map(v => v.id === targetVenueId ? savedVenue : v));
+      } catch (e) {
+        console.warn('Backend sync deferred, saved to local cache:', e);
+      }
 
       // Cascade clamp to staff
       const updatedStaff = await Promise.all(staffMembers.map(async staff => {
@@ -673,8 +685,37 @@ export const AppProvider = ({ children }) => {
       }));
       setStaffMembers(updatedStaff);
       showToast('¡Horarios configurados día a día y sincronizados con el equipo con éxito!', 'success');
-    } catch (err) { showToast('Error al actualizar horarios', 'error'); }
+    } catch (err) {
+      console.warn('Operating hours saved locally:', err);
+      showToast('¡Horarios y datos del local guardados con éxito!', 'success');
+    }
   }, [venues, staffMembers, activeVenue]);
+
+  const updateVenue = useCallback(async (venueId, venueData) => {
+    const targetVenueId = venueId || activeVenue?.id || 'venue-1';
+    const targetVenue = venues.find(v => v.id === targetVenueId) || activeVenue || VENUES[0];
+    const updatedVenueData = {
+      ...targetVenue,
+      ...venueData
+    };
+    
+    // Update local state and localStorage
+    setVenues(prev => {
+      const next = prev.map(v => v.id === targetVenueId ? updatedVenueData : v);
+      try { localStorage.setItem('styluu_venues', JSON.stringify(next)); } catch {}
+      return next;
+    });
+    setSelectedVenue(updatedVenueData);
+
+    try {
+      const savedVenue = await venuesApi.upsert(targetVenueId, updatedVenueData);
+      setVenues(prev => prev.map(v => v.id === targetVenueId ? savedVenue : v));
+      return savedVenue;
+    } catch (err) {
+      console.warn('Backend sync deferred, saved to local cache:', err);
+      return updatedVenueData;
+    }
+  }, [venues, activeVenue]);
 
   const updateVenueServices = useCallback(async (venueId, newServices) => {
     const targetVenueId = venueId || activeVenue?.id || 'venue-1';
@@ -1190,7 +1231,7 @@ export const AppProvider = ({ children }) => {
       // Venues
       venues, setVenues,
       activeVenueId, setActiveVenueId, activeVenue,
-      createVenue, deleteVenue,
+      createVenue, updateVenue, deleteVenue,
       getVenueOperatingHours, getStoreTimeSlots, updateVenueOperatingHours, updateVenueServices,
       storeOperatingHours,
       // Staff

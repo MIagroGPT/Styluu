@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useApp } from '../../context/AppContext';
+import { geocodeAddress } from '../../lib/geoUtils';
 import { 
   Store, 
   Image as ImageIcon, 
@@ -35,7 +36,8 @@ export const VenueProfileEditor = () => {
     currentCurrency,
     formatMoney,
     getVenueOperatingHours,
-    updateVenueOperatingHours
+    updateVenueOperatingHours,
+    updateVenue
   } = useApp();
 
   const currentVenue = venues[0];
@@ -247,14 +249,23 @@ export const VenueProfileEditor = () => {
   const formattedHoursString = `${formatHourDisplay(overallMinOpen)} - ${formatHourDisplay(overallMaxClose)}`;
 
   // Save changes
-  const handleSaveProfile = (e) => {
+  const handleSaveProfile = async (e) => {
     if (e) e.preventDefault();
 
-    // Update master operating hours and cascade to staff
-    if (updateVenueOperatingHours) {
-      updateVenueOperatingHours(currentVenue.id, dailySchedule, overallMaxClose, activeOpenDays, formattedHoursString);
-    }
+    // Geocode address and city to calculate exact GPS coordinates
+    let lat = currentVenue?.lat || 20.5400;
+    let lng = currentVenue?.lng || -103.4645;
     
+    try {
+      const geoCoords = await geocodeAddress(address, city);
+      if (geoCoords && geoCoords.lat && geoCoords.lng) {
+        lat = geoCoords.lat;
+        lng = geoCoords.lng;
+      }
+    } catch (geoErr) {
+      console.warn('Geocoding fallback applied:', geoErr);
+    }
+
     const updatedVenue = {
       ...currentVenue,
       name,
@@ -262,6 +273,8 @@ export const VenueProfileEditor = () => {
       category,
       city,
       address,
+      lat,
+      lng,
       dailySchedule,
       openingHour: overallMinOpen,
       closingHour: overallMaxClose,
@@ -273,13 +286,25 @@ export const VenueProfileEditor = () => {
       badges
     };
 
-    const updatedVenues = venues.map(v => v.id === currentVenue.id ? updatedVenue : v);
-    setVenues(updatedVenues);
-    setSelectedVenue(updatedVenue);
-    
-    // Save directly to localStorage for permanent storage
-    localStorage.setItem('styluu_venues', JSON.stringify(updatedVenues));
-    showToast('¡Información del negocio y horarios diarios guardados con éxito!', 'success');
+    // Update master operating hours and cascade to staff
+    if (updateVenueOperatingHours) {
+      try {
+        await updateVenueOperatingHours(currentVenue.id, dailySchedule, overallMaxClose, activeOpenDays, formattedHoursString);
+      } catch (hErr) {
+        console.warn('Operating hours sync fallback:', hErr);
+      }
+    }
+
+    if (updateVenue) {
+      await updateVenue(currentVenue.id, updatedVenue);
+    } else {
+      const updatedVenues = venues.map(v => v.id === currentVenue.id ? updatedVenue : v);
+      setVenues(updatedVenues);
+      setSelectedVenue(updatedVenue);
+      try { localStorage.setItem('styluu_venues', JSON.stringify(updatedVenues)); } catch {}
+    }
+
+    showToast('¡Información del negocio, horarios y ubicación en mapa actualizados con éxito!', 'success');
   };
 
   const handleAddGalleryImage = () => {

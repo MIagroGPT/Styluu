@@ -80,3 +80,57 @@ export const openDirections = (lat, lng, address = '', name = '') => {
 
   window.open(url, '_blank', 'noopener,noreferrer');
 };
+
+/**
+ * Geocode address/city into GPS coordinates [lat, lng] using OpenStreetMap Nominatim
+ */
+export const geocodeAddress = async (address = '', city = '') => {
+  const cleanQuery = `${address} ${city}`.trim();
+  if (!cleanQuery) return null;
+
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanQuery)}&limit=1`, {
+      headers: { 'Accept-Language': 'es,en' }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.length > 0) {
+        return {
+          lat: parseFloat(data[0].lat),
+          lng: parseFloat(data[0].lon)
+        };
+      }
+    }
+  } catch (e) {
+    console.warn('Geocoding fetch fallback:', e);
+  }
+
+  // City and zone coordinate fallbacks
+  const text = cleanQuery.toLowerCase();
+  if (text.includes('guadalajara') || text.includes('zapopan') || text.includes('jalisco') || text.includes('45645') || text.includes('senderos')) {
+    return { lat: 20.5400, lng: -103.4645 };
+  }
+  if (text.includes('cdmx') || text.includes('mexico') || text.includes('méxico') || text.includes('polanco') || text.includes('roma')) {
+    return { lat: 19.4326, lng: -99.1332 };
+  }
+  if (text.includes('bogot') || text.includes('colombia')) {
+    return { lat: 4.7110, lng: -74.0721 };
+  }
+  if (text.includes('medell')) {
+    return { lat: 6.2442, lng: -75.5812 };
+  }
+  if (text.includes('miami') || text.includes('brickell') || text.includes('wynwood')) {
+    return { lat: 25.7617, lng: -80.1918 };
+  }
+  if (text.includes('new york') || text.includes('ny') || text.includes('soho')) {
+    return { lat: 40.7128, lng: -74.0060 };
+  }
+  if (text.includes('monterrey') || text.includes('nuevo leon')) {
+    return { lat: 25.6866, lng: -100.3161 };
+  }
+  if (text.includes('madrid') || text.includes('españa')) {
+    return { lat: 40.4168, lng: -3.7038 };
+  }
+  return null;
+};
+
