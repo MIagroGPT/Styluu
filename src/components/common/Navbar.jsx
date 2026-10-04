@@ -29,7 +29,11 @@ export const Navbar = () => {
     selectedCountry,
     setBusinessCountry,
     currencies,
-    currentCurrency
+    currentCurrency,
+    domainInfo,
+    navigateToMain,
+    navigateToBiz,
+    navigateToApp
   } = useApp();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCurrencyDropdownOpen, setIsCurrencyDropdownOpen] = useState(false);
@@ -42,14 +46,14 @@ export const Navbar = () => {
         <div className="flex items-center justify-between h-20">
           
           {/* Brand Logo */}
-          <div onClick={() => setCurrentView('landing')} className="flex items-center cursor-pointer">
+          <div onClick={() => navigateToMain()} className="flex items-center cursor-pointer">
             <Logo />
           </div>
 
           {/* Center Navigation Links for Desktop */}
           <nav className="hidden md:flex items-center gap-1 bg-brand-soft-card p-1.5 rounded-full border border-slate-200/80">
             <button
-              onClick={() => setCurrentView('landing')}
+              onClick={() => navigateToMain()}
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all ${
                 currentView === 'landing'
                   ? 'bg-white text-brand-carbon shadow-sm'
@@ -73,7 +77,7 @@ export const Navbar = () => {
             </button>
 
             <button
-              onClick={() => setCurrentView('my-bookings')}
+              onClick={() => navigateToApp()}
               className={`relative flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all ${
                 currentView === 'my-bookings'
                   ? 'bg-white text-brand-carbon shadow-sm'
@@ -90,7 +94,7 @@ export const Navbar = () => {
             </button>
           </nav>
 
-          {/* Right Controls: Currency, Language & Switch to Styluu for Business OS */}
+          {/* Right Controls: Currency, Language & Switch to Bublyme for Business OS */}
           <div className="hidden lg:flex items-center gap-2.5">
             
             {/* Multi-Currency / Country Selector Dropdown */}
@@ -143,10 +147,10 @@ export const Navbar = () => {
             </button>
 
 
-            {/* Switch Mode Button */}
+            {/* Switch Mode Button (Business OS) */}
             {currentView === 'business-os' ? (
               <button
-                onClick={() => setCurrentView('landing')}
+                onClick={() => navigateToMain()}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-all"
               >
                 <Compass className="w-4 h-4 text-brand-purple" />
@@ -154,7 +158,7 @@ export const Navbar = () => {
               </button>
             ) : (
               <button
-                onClick={() => setCurrentView('business-os')}
+                onClick={() => navigateToBiz()}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-carbon to-[#1E252B] hover:from-black hover:to-brand-carbon text-white text-xs font-bold shadow-md hover:shadow-lg transition-all group"
               >
                 <LayoutDashboard className="w-4 h-4 text-brand-mint group-hover:rotate-12 transition-transform" />
@@ -167,7 +171,7 @@ export const Navbar = () => {
 
             {/* Client User avatar pill */}
             <button 
-              onClick={() => setCurrentView('my-bookings')}
+              onClick={() => navigateToApp()}
               className="flex items-center gap-2 p-1.5 pr-3 rounded-full border border-slate-200 hover:border-brand-purple/40 hover:bg-brand-purple/5 transition-all"
             >
               <div className="w-8 h-8 rounded-full bg-brand-purple text-white flex items-center justify-center font-bold text-xs">
@@ -202,7 +206,7 @@ export const Navbar = () => {
         <div className="lg:hidden bg-white border-b border-slate-200 px-4 pt-2 pb-6 space-y-3 shadow-xl animate-in slide-in-from-top duration-200">
           <div className="grid grid-cols-2 gap-2 pb-2 border-b border-slate-100">
             <button
-              onClick={() => { setCurrentView('landing'); setIsMobileMenuOpen(false); }}
+              onClick={() => { navigateToMain(); setIsMobileMenuOpen(false); }}
               className={`p-3 rounded-xl text-left font-bold text-sm flex items-center gap-2 ${currentView === 'landing' ? 'bg-brand-purple text-white' : 'bg-slate-50 text-slate-700'}`}
             >
               <Compass className="w-4 h-4" />
@@ -218,7 +222,7 @@ export const Navbar = () => {
           </div>
 
           <button
-            onClick={() => { setCurrentView('my-bookings'); setIsMobileMenuOpen(false); }}
+            onClick={() => { navigateToApp(); setIsMobileMenuOpen(false); }}
             className="w-full p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 font-bold text-sm flex items-center justify-between"
           >
             <div className="flex items-center gap-2">
@@ -233,7 +237,7 @@ export const Navbar = () => {
           </button>
 
           <button
-            onClick={() => { setCurrentView('business-os'); setIsMobileMenuOpen(false); }}
+            onClick={() => { navigateToBiz(); setIsMobileMenuOpen(false); }}
             className="w-full p-3.5 rounded-xl bg-gradient-to-r from-brand-carbon to-[#1E252B] text-white font-bold text-sm flex items-center justify-between shadow-lg"
           >
             <div className="flex items-center gap-2">

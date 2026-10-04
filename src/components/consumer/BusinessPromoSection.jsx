@@ -17,7 +17,7 @@ import {
 
 export const BusinessPromoSection = () => {
   const { t } = useLanguage();
-  const { setCurrentView, setBusinessTab } = useApp();
+  const { setCurrentView, setBusinessTab, navigateToBiz } = useApp();
   const [activeFeatureTab, setActiveFeatureTab] = useState(0);
 
   const features = [
@@ -76,10 +76,7 @@ export const BusinessPromoSection = () => {
 
           <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
             <button
-              onClick={() => {
-                setCurrentView('business-os');
-                setBusinessTab('calendar');
-              }}
+              onClick={() => navigateToBiz('calendar')}
               className="px-7 py-3.5 rounded-2xl bg-brand-purple hover:bg-brand-purple-dark text-white font-black text-sm sm:text-base shadow-lg hover:shadow-purple-glow transition-all flex items-center gap-2 group"
             >
               <span>{t('biz_cta_btn')}</span>
@@ -87,10 +84,7 @@ export const BusinessPromoSection = () => {
             </button>
 
             <button
-              onClick={() => {
-                setCurrentView('business-os');
-                setBusinessTab('calendar');
-              }}
+              onClick={() => navigateToBiz('calendar')}
               className="px-6 py-3.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-sm sm:text-base border border-slate-700 transition-all flex items-center gap-2"
             >
               <Play className="w-4 h-4 text-brand-mint fill-brand-mint" />
@@ -218,10 +212,7 @@ export const BusinessPromoSection = () => {
               return (
                 <div 
                   key={idx}
-                  onClick={() => {
-                    setCurrentView('business-os');
-                    setBusinessTab(feat.tabKey);
-                  }}
+                  onClick={() => navigateToBiz(feat.tabKey)}
                   className="p-5 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-brand-mint/40 transition-all cursor-pointer group"
                 >
                   <div className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${feat.color} flex items-center justify-center text-white mb-3 shadow-md`}>

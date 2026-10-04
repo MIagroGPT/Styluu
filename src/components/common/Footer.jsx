@@ -13,7 +13,7 @@ import {
 
 export const Footer = () => {
   const { t } = useLanguage();
-  const { setCurrentView, setBusinessTab } = useApp();
+  const { setCurrentView, setBusinessTab, navigateToMain, navigateToBiz, navigateToApp } = useApp();
 
   return (
     <footer className="bg-brand-carbon text-white pt-16 pb-12 border-t border-slate-800">
@@ -24,7 +24,7 @@ export const Footer = () => {
           
           {/* Brand Info */}
           <div className="lg:col-span-2 space-y-4">
-            <div onClick={() => setCurrentView('landing')} className="cursor-pointer">
+            <div onClick={() => navigateToMain()} className="cursor-pointer">
               <Logo variant="white" className="h-9" subtitle="Beauty & Barber OS" />
             </div>
             
@@ -72,7 +72,7 @@ export const Footer = () => {
               <li><button onClick={() => setCurrentView('explore')} className="hover:text-brand-mint transition-colors">Spas en Los Ángeles</button></li>
               <li><button onClick={() => setCurrentView('explore')} className="hover:text-brand-mint transition-colors">Manicura & Nails</button></li>
               <li><button onClick={() => setCurrentView('explore')} className="hover:text-brand-mint transition-colors">Tratamientos Faciales</button></li>
-              <li><button onClick={() => setCurrentView('my-bookings')} className="hover:text-brand-mint transition-colors">Mis Citas & Reservas</button></li>
+              <li><button onClick={() => navigateToApp()} className="hover:text-brand-mint transition-colors">Mis Citas & Reservas</button></li>
             </ul>
           </div>
 
@@ -83,11 +83,11 @@ export const Footer = () => {
               Bublyme for Business
             </h4>
             <ul className="space-y-2 text-sm text-slate-400">
-              <li><button onClick={() => { setCurrentView('business-os'); setBusinessTab('calendar'); }} className="hover:text-white transition-colors flex items-center gap-1">Calendario Multi-Staff <ArrowUpRight className="w-3 h-3 text-slate-500" /></button></li>
-              <li><button onClick={() => { setCurrentView('business-os'); setBusinessTab('pos'); }} className="hover:text-white transition-colors flex items-center gap-1">Punto de Venta POS <ArrowUpRight className="w-3 h-3 text-slate-500" /></button></li>
-              <li><button onClick={() => { setCurrentView('business-os'); setBusinessTab('clients'); }} className="hover:text-white transition-colors flex items-center gap-1">CRM & Fidelización <ArrowUpRight className="w-3 h-3 text-slate-500" /></button></li>
-              <li><button onClick={() => { setCurrentView('business-os'); setBusinessTab('analytics'); }} className="hover:text-white transition-colors flex items-center gap-1">Reportes & Métricas <ArrowUpRight className="w-3 h-3 text-slate-500" /></button></li>
-              <li><button onClick={() => { setCurrentView('business-os'); setBusinessTab('team'); }} className="hover:text-white transition-colors flex items-center gap-1">Comisiones & Staff <ArrowUpRight className="w-3 h-3 text-slate-500" /></button></li>
+              <li><button onClick={() => navigateToBiz('calendar')} className="hover:text-white transition-colors flex items-center gap-1">Calendario Multi-Staff <ArrowUpRight className="w-3 h-3 text-slate-500" /></button></li>
+              <li><button onClick={() => navigateToBiz('pos')} className="hover:text-white transition-colors flex items-center gap-1">Punto de Venta POS <ArrowUpRight className="w-3 h-3 text-slate-500" /></button></li>
+              <li><button onClick={() => navigateToBiz('clients')} className="hover:text-white transition-colors flex items-center gap-1">CRM & Fidelización <ArrowUpRight className="w-3 h-3 text-slate-500" /></button></li>
+              <li><button onClick={() => navigateToBiz('analytics')} className="hover:text-white transition-colors flex items-center gap-1">Reportes & Métricas <ArrowUpRight className="w-3 h-3 text-slate-500" /></button></li>
+              <li><button onClick={() => navigateToBiz('team')} className="hover:text-white transition-colors flex items-center gap-1">Comisiones & Staff <ArrowUpRight className="w-3 h-3 text-slate-500" /></button></li>
             </ul>
           </div>
 

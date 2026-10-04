@@ -58,6 +58,7 @@ export const SuperAdminDashboard = () => {
     setSelectedVenue,
     createVenue,
     deleteVenue,
+    navigateToMain,
     showToast
   } = useApp();
 
@@ -74,7 +75,7 @@ export const SuperAdminDashboard = () => {
 
   const handleLoginSubmit = (e) => {
     e.preventDefault();
-    if (pinInput === 'Styluu2026!' || pinInput === 'admin2026' || pinInput === '2026') {
+    if (pinInput === 'Bublyme2026!' || pinInput === 'bublyme2026' || pinInput === 'Styluu2026!' || pinInput === 'admin2026' || pinInput === '2026') {
       try {
         sessionStorage.setItem('styluu_master_auth', 'true');
       } catch {}
@@ -248,7 +249,7 @@ export const SuperAdminDashboard = () => {
 
           <div className="mt-6 pt-6 border-t border-slate-800/80 text-center">
             <button
-              onClick={() => setCurrentView('landing')}
+              onClick={() => navigateToMain()}
               className="text-xs text-slate-400 hover:text-slate-200 transition-colors font-medium inline-flex items-center gap-1.5"
             >
               <span>← Volver al Marketplace público</span>
@@ -266,7 +267,7 @@ export const SuperAdminDashboard = () => {
       <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 px-4 sm:px-8 py-4">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div onClick={() => setCurrentView('landing')} className="cursor-pointer">
+            <div onClick={() => navigateToMain()} className="cursor-pointer">
               <Logo variant="white" className="h-8" subtitle="Super Admin" />
             </div>
             <p className="hidden md:block text-xs text-slate-400 pl-2 border-l border-slate-700">
@@ -276,7 +277,7 @@ export const SuperAdminDashboard = () => {
 
           <div className="flex flex-wrap items-center gap-2.5">
             <button
-              onClick={() => setCurrentView('landing')}
+              onClick={() => navigateToMain()}
               className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition-colors flex items-center gap-1.5"
             >
               <span>Ver Marketplace</span>

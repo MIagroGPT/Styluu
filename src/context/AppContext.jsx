@@ -40,22 +40,81 @@ const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   // ── UI State (still local — no need to sync across devices) ─────────────
+  // ── Subdomain & Environment Detection ───────────────────────────────────
+  const getDomainInfo = () => {
+    try {
+      const hostname = (window.location.hostname || '').toLowerCase();
+      const isBizSubdomain = hostname.startsWith('biz.') || hostname.startsWith('partner.') || hostname.startsWith('business.');
+      const isAppSubdomain = hostname.startsWith('app.') || hostname.startsWith('client.') || hostname.startsWith('m.');
+      const isAdminSubdomain = hostname.startsWith('admin.') || hostname.startsWith('master.');
+      const isCustomDomain = hostname.includes('bublyme.com');
+      
+      const protocol = window.location.protocol;
+      const mainBaseUrl = isCustomDomain ? `${protocol}//bublyme.com` : window.location.origin;
+      const bizBaseUrl = isCustomDomain ? `${protocol}//biz.bublyme.com` : `${window.location.origin}/business`;
+      const appBaseUrl = isCustomDomain ? `${protocol}//app.bublyme.com` : `${window.location.origin}/mis-citas`;
+      const adminBaseUrl = isCustomDomain ? `${protocol}//admin.bublyme.com` : `${window.location.origin}/admin`;
+
+      return {
+        hostname,
+        isBizSubdomain,
+        isAppSubdomain,
+        isAdminSubdomain,
+        isCustomDomain,
+        mainBaseUrl,
+        bizBaseUrl,
+        appBaseUrl,
+        adminBaseUrl,
+      };
+    } catch {
+      return {
+        hostname: '',
+        isBizSubdomain: false,
+        isAppSubdomain: false,
+        isAdminSubdomain: false,
+        isCustomDomain: false,
+        mainBaseUrl: '/',
+        bizBaseUrl: '/business',
+        appBaseUrl: '/mis-citas',
+        adminBaseUrl: '/admin',
+      };
+    }
+  };
+
+  const domainInfo = getDomainInfo();
+
   const getViewFromUrl = () => {
     try {
+      const hostname = (window.location.hostname || '').toLowerCase();
       const path = (window.location.pathname || '').toLowerCase();
       const hash = (window.location.hash || '').toLowerCase();
+
+      // 1. Prioritize subdomains (biz.bublyme.com, app.bublyme.com, admin.bublyme.com)
+      if (hostname.startsWith('biz.') || hostname.startsWith('partner.') || hostname.startsWith('business.')) {
+        return 'business-os';
+      }
+      if (hostname.startsWith('app.') || hostname.startsWith('client.') || hostname.startsWith('m.')) {
+        return 'my-bookings';
+      }
+      if (hostname.startsWith('admin.') || hostname.startsWith('master.')) {
+        return 'super-admin';
+      }
+
+      // 2. Prioritize URL path & hash
       if (path.includes('/admin') || path.includes('/maestro') || path.includes('/super-admin') || hash.includes('admin') || hash.includes('maestro')) {
         return 'super-admin';
       }
-      if (path.includes('/business') || path.includes('/pro') || hash.includes('business')) {
+      if (path.includes('/business') || path.includes('/biz') || path.includes('/pro') || hash.includes('business')) {
         return 'business-os';
       }
-      if (path.includes('/mis-citas') || path.includes('/bookings') || hash.includes('citas')) {
+      if (path.includes('/mis-citas') || path.includes('/bookings') || path.includes('/app') || hash.includes('citas')) {
         return 'my-bookings';
       }
       if (path.includes('/explore') || hash.includes('explore')) {
         return 'explore';
       }
+
+      // 3. Fallback to storage or landing
       const saved = localStorage.getItem('styluu_view');
       const valid = ['landing', 'explore', 'venue-detail', 'my-bookings', 'business-os', 'super-admin'];
       return valid.includes(saved) ? saved : 'landing';
@@ -125,10 +184,55 @@ export const AppProvider = ({ children }) => {
   const [dbReady, setDbReady] = useState(false);
   const [dbError, setDbError] = useState(null);
 
+  // ── Navigation helpers across subdomains and views ────────────────────────
+  const navigateToMain = () => {
+    const { isCustomDomain, isBizSubdomain, isAppSubdomain, isAdminSubdomain, mainBaseUrl } = getDomainInfo();
+    if (isCustomDomain && (isBizSubdomain || isAppSubdomain || isAdminSubdomain)) {
+      window.location.href = mainBaseUrl;
+    } else {
+      setCurrentView('landing');
+    }
+  };
+
+  const navigateToBiz = (tab = 'calendar') => {
+    const { isCustomDomain, isBizSubdomain, bizBaseUrl } = getDomainInfo();
+    if (isCustomDomain && !isBizSubdomain) {
+      window.location.href = bizBaseUrl;
+    } else {
+      setBusinessTab(tab);
+      setCurrentView('business-os');
+    }
+  };
+
+  const navigateToApp = () => {
+    const { isCustomDomain, isAppSubdomain, appBaseUrl } = getDomainInfo();
+    if (isCustomDomain && !isAppSubdomain) {
+      window.location.href = appBaseUrl;
+    } else {
+      setCurrentView('my-bookings');
+    }
+  };
+
+  const navigateToAdmin = () => {
+    const { isCustomDomain, isAdminSubdomain, adminBaseUrl } = getDomainInfo();
+    if (isCustomDomain && !isAdminSubdomain) {
+      window.location.href = adminBaseUrl;
+    } else {
+      setCurrentView('super-admin');
+    }
+  };
+
   // Persist view so page reload returns to the same section, and sync with browser URL
   useEffect(() => {
     try {
       localStorage.setItem('styluu_view', currentView);
+      const { isBizSubdomain, isAppSubdomain, isAdminSubdomain } = getDomainInfo();
+      
+      // If we are on a dedicated subdomain, maintain clean root URL or subviews
+      if (isBizSubdomain && currentView === 'business-os') return;
+      if (isAppSubdomain && currentView === 'my-bookings') return;
+      if (isAdminSubdomain && currentView === 'super-admin') return;
+
       const urlMap = {
         'super-admin': '/admin',
         'business-os': '/business',
@@ -972,6 +1076,12 @@ export const AppProvider = ({ children }) => {
     <AppContext.Provider value={{
       // DB state
       dbReady, dbError,
+      // Domain & Subdomain Routing
+      domainInfo,
+      navigateToMain,
+      navigateToBiz,
+      navigateToApp,
+      navigateToAdmin,
       // UI
       currentView, setCurrentView,
       businessTab, setBusinessTab,

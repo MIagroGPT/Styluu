@@ -46,7 +46,8 @@ export const BusinessOS = () => {
     activeVenue,
     activeVenueId,
     setActiveVenueId,
-    showToast
+    showToast,
+    navigateToMain
   } = useApp();
 
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
@@ -101,12 +102,12 @@ export const BusinessOS = () => {
         {/* Top Brand & Salon Title */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <div onClick={() => setCurrentView('landing')} className="cursor-pointer">
+            <div onClick={() => navigateToMain()} className="cursor-pointer">
               <Logo variant="white" className="h-8" subtitle="Business OS" />
             </div>
 
             <button
-              onClick={() => setCurrentView('landing')}
+              onClick={() => navigateToMain()}
               className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white text-xs transition-colors"
               title="Volver a la Web"
             >
@@ -233,7 +234,7 @@ export const BusinessOS = () => {
           </button>
 
           <button
-            onClick={() => setCurrentView('landing')}
+            onClick={() => navigateToMain()}
             className="w-full py-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-semibold flex items-center justify-center gap-2"
           >
             <Store className="w-3.5 h-3.5" />
